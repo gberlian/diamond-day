@@ -2,33 +2,77 @@
 
 A folder-based way to keep AI coding sessions working toward goals over days. A **ray** is one folder and one agent session. It is organized around outcomes, not a list of commands that gets stale. The agent can restart from files without depending on old chat context.
 
-Works with Claude Code, Codex CLI, or Claude Desktop. Requires Node.js 18+ for the included checks and local board. Git and the agent itself are separate installs. No account, hosted service, proxy, or other repository is needed for the demo.
+Works with Claude Code, Codex CLI, or Claude Desktop. Requires Node.js 20+ for the included checks and local board. Git and the agent itself are separate installs. No account, hosted service, proxy, or other repository is needed for the demo.
 
-## Start in about a minute
+## Quick start (macOS, Linux, or Git Bash)
 
-From this repository, on macOS, Linux, or Windows with Bash:
+From this repository, with Bash:
 
 ```sh
 bash install.sh --agent claude-code --root ./my-rays --ray website --demo
 cd my-rays/demo
-node ../tools/check-goals GOALS.md
+node ../tools/check-goals.mjs GOALS.md
 node checks/build.mjs
 node checks/links.mjs
-node ../tools/board ..
+node ../tools/board.mjs ..
 ```
 
-PowerShell on Windows:
+## Windows 11: from zero to a working demo
+
+You need **Node.js 20 or newer** and PowerShell 7 for these commands. Git Bash is
+optional; an AI-agent account is **not** needed to run the demo. If they are not
+installed, open Windows Terminal (PowerShell) and install them with Windows Package
+Manager, then **open a new terminal** so both commands are on your PATH:
 
 ```powershell
-.\install.ps1 -Agent claude-code -Root .\my-rays -Ray website -Demo
-Set-Location .\my-rays\demo
-node ..\tools\check-goals GOALS.md
-node checks\build.mjs
-node checks\links.mjs
-node ..\tools\board ..
+winget install --id OpenJS.NodeJS.LTS --exact
+winget install --id Microsoft.PowerShell --exact
+node --version
+pwsh --version
 ```
 
-The demo builds a two-page static site and checks every local link. Open `my-rays/board.html` for the local, read-only ray board. To start an actual agent, open a terminal *in* `my-rays/demo` and run `claude`, then tell it: "Read GOALS.md and plans/resume.md. Run every Check, repair failures, then work on Next." For Codex, use `--agent codex` and run `codex`. For Claude Desktop, use `--agent claude-desktop` and follow [its Project setup](guides/claude-desktop.md). The demo and all the scripts run without an AI account.
+Save or rename the downloaded repository archive to `diamond-day.zip` in your working folder.
+Open PowerShell 7 (`pwsh`) in that folder and run the following commands **exactly**.
+The chosen folder name `my rays` intentionally includes a space.
+
+```powershell
+Unblock-File -LiteralPath .\diamond-day.zip
+Expand-Archive -LiteralPath .\diamond-day.zip -DestinationPath .\diamond-day
+Set-Location .\diamond-day
+pwsh -NoProfile -File .\install.ps1 -Agent claude-code -Root '.\my rays' -Ray website -Demo
+Set-Location '.\my rays\demo'
+node '..\tools\check-goals.mjs' .\GOALS.md
+node .\checks\build.mjs
+node .\checks\links.mjs
+node '..\tools\board.mjs' ..
+Invoke-Item '..\board.html'
+```
+
+The goal checker should print **two GOAL lines** and `PASS goals: 2 goal(s)`.
+The build and link checks should print `PASS build` and `PASS links`, and the last
+command opens the local ray board in your browser. This completes a working offline
+demo; installing Claude Code, Codex, or Claude Desktop is only necessary to start an
+AI agent. Use `-Agent codex` or `-Agent claude-desktop` when creating a real ray for
+those applications.
+
+To run the repository tests in PowerShell 7, return to the repository directory:
+
+```powershell
+Set-Location ../..
+pwsh -NoProfile -File .\test\clean-install.ps1
+pwsh -NoProfile -File .\test\no-private.ps1
+pwsh -NoProfile -File .\test\no-private-regression.ps1
+```
+
+If you have **Git Bash** installed, the same repository also supports:
+
+```bash
+bash test/clean-install.sh
+bash test/no-private.sh
+bash test/no-private-regression.sh
+```
+
+The demo builds a two-page static site and checks every local link. Open `<rays-root>/board.html` for the local, read-only ray board. To start an actual agent, open a terminal *in* your demo ray folder and run `claude`, then tell it: "Read GOALS.md and plans/resume.md. Run every Check, repair failures, then work on Next." For Codex, use `--agent codex` and run `codex`. For Claude Desktop, use `--agent claude-desktop` and follow [its Project setup](guides/claude-desktop.md). The demo and all the scripts run without an AI account.
 
 ## The loop
 
@@ -65,7 +109,7 @@ The install scripts create a root with `rays.txt`, `templates/`, `tools/`, an au
 | Part | Needed? | Where it fits |
 | --- | --- | --- |
 | Goal files, checks, resume, coordinator | Core | Included in each installed root |
-| Plain notes and local HTML board | Core | `tools/open-note`, `tools/board`; board is a generated snapshot, not live monitoring |
+| Plain notes and local HTML board | Core | `tools/open-note.mjs`, `tools/board.mjs`; board is a generated snapshot, not live monitoring |
 | External document viewer | Optional | Replace the OS note opener after writing a change note |
 | External live board/restarter | Optional | Read `rays.txt`, goals, notes, and handoff statuses; must be configured separately |
 | Model-traffic proxy | Optional | Configure the agent's supported networking settings outside this repository |
@@ -75,7 +119,7 @@ The optional integration points are described together in [board and viewer](gui
 
 ## Use a real ray
 
-Replace the starter Check (`node ../tools/check-goals GOALS.md`) with a command that proves the **actual** outcome, then run it. Put active ray names one per line in `rays.txt`. Put repository paths you authorize in that ray's `README.md`; an agent should not edit unrelated repositories. The root board can be regenerated with `node tools/board .` from the rays root. It reflects written **Now** values, not live validation.
+Replace the starter Check (`node ../tools/check-goals.mjs GOALS.md`) with a command that proves the **actual** outcome, then run it. Put active ray names one per line in `rays.txt`. Put repository paths you authorize in that ray's `README.md`; an agent should not edit unrelated repositories. The root board can be regenerated with `node tools/board.mjs .` from the rays root. It reflects written **Now** values, not live validation.
 
 Agent guides: [Claude Code](guides/claude-code.md), [Codex CLI](guides/codex.md), [Claude Desktop](guides/claude-desktop.md). See [coordinator](guides/coordinator.md), [handoffs](guides/handoffs.md), and [contributing](CONTRIBUTING.md).
 

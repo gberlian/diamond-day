@@ -1,6 +1,6 @@
 # Codex CLI
 
-1. Install Codex CLI and Node.js 18+. See the [official Codex CLI guide](https://learn.chatgpt.com/docs/codex/cli).
+1. Install Codex CLI and Node.js 20+. See the [official Codex CLI guide](https://learn.chatgpt.com/docs/codex/cli).
 2. Run `bash install.sh --agent codex --root ./my-rays --ray website --demo`, or `.\install.ps1 -Agent codex -Root .\my-rays -Ray website -Demo`.
 3. Change directory to `my-rays/demo` and run `codex`. Each ray has its own `AGENTS.md` at its root. Codex reads that instruction file at startup, along with any applicable parent guidance.
 4. First prompt: "Read GOALS.md and plans/resume.md. Run all goal Checks, repair failures, then work each Next and record proof."
@@ -19,7 +19,7 @@ Current Codex supports `SessionStart` hooks. For a trusted project, you can crea
       {
         "matcher": "startup|resume",
         "hooks": [
-          { "type": "command", "command": "node ../tools/check-goals GOALS.md" }
+          { "type": "command", "command": "node ../tools/check-goals.mjs GOALS.md" }
         ]
       }
     ]
@@ -31,4 +31,4 @@ Review and trust it using `/hooks` in Codex. This checks only the GOALS.md struc
 
 ## Deliver notes
 
-Write a new `docs/changes/` Markdown note with results and evidence. Run `node ../tools/open-note docs/changes/<topic>.md` to open it in the OS default application. Refresh the file-based board with `node ../tools/board ..`, then open `../board.html`. These steps also work with no optional viewer or live board. The CLI doesn't itself keep rays running after the session exits; restart it or use an independent scheduler with explicit permission.
+Write a new `docs/changes/` Markdown note with results and evidence. Run `node ../tools/open-note.mjs docs/changes/<topic>.md` to open it in the OS default application. Refresh the file-based board with `node ../tools/board.mjs ..`, then open `../board.html`. These steps also work with no optional viewer or live board. The CLI doesn't itself keep rays running after the session exits; restart it or use an independent scheduler with explicit permission.

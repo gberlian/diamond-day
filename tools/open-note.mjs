@@ -1,12 +1,10 @@
-#!/usr/bin/env node
-'use strict';
-const cp = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
+import * as cp from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const arg = process.argv[2];
 if (!arg || process.argv.length > 3) {
-  console.error('Usage: node tools/open-note FILE.md (or board.html)');
+  console.error('Usage: node tools/open-note.mjs FILE.md (or board.html)');
   process.exit(2);
 }
 const file = path.resolve(arg);

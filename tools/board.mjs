@@ -1,7 +1,5 @@
-#!/usr/bin/env node
-'use strict';
-const fs = require('node:fs');
-const path = require('node:path');
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const root = path.resolve(process.argv[2] || '.');
 const htmlEscape = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -44,7 +42,7 @@ header p{color:#49566a}a{color:#174d87}main{display:grid;grid-template-columns:r
 .goal h3{font-size:1rem}.goal dl{display:grid;grid-template-columns:4.5rem 1fr;gap:.4rem .7rem}
 .goal dt{font-weight:700}.goal dd{margin:0;overflow-wrap:anywhere}
 </style></head><body><header><h1>Ray board</h1>
-<p>Written status only. Re-run each Check before calling any result current. Regenerate with <code>node tools/board .</code>.</p></header>
+<p>Written status only. Re-run each Check before calling any result current. Regenerate with <code>node tools/board.mjs .</code>.</p></header>
 <main>${panels.join('\n')}</main></body></html>\n`;
 const output = path.join(root, 'board.html');
 fs.writeFileSync(output, html, 'utf8');

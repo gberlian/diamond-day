@@ -1,8 +1,7 @@
-#!/usr/bin/env node
-'use strict';
-const fs = require('node:fs');
-const path = require('node:path');
-const cp = require('node:child_process');
+import { fileURLToPath } from 'node:url';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as cp from 'node:child_process';
 
 const root = path.resolve(process.argv[2] || '.');
 let names;
@@ -21,7 +20,7 @@ let failures = 0;
 for (const name of names) {
   if (!/^[a-z][a-z0-9-]*$/.test(name)) { console.error(`FAIL rays: invalid name ${name}`); failures++; continue; }
   const goal = path.join(root, name, 'GOALS.md');
-  const result = cp.spawnSync(process.execPath, [path.join(__dirname, 'check-goals'), goal], { encoding: 'utf8' });
+  const result = cp.spawnSync(process.execPath, [fileURLToPath(new URL('./check-goals.mjs', import.meta.url)), goal], { encoding: 'utf8' });
   if (result.status !== 0) {
     console.error(`FAIL rays: ${name}\n${result.stderr || result.stdout || result.error}`);
     failures++;

@@ -2,7 +2,7 @@
 
 ## 1. Every active ray has a goal file
 - **Want:** Active rays can restart from complete, readable goals.
-- **Check:** `node ../tools/check-rays ..`
+- **Check:** `node ../tools/check-rays.mjs ..`
 - **Research:** `docs/goals/ray-health/`
 - **Now:** Installed. Structural status has not been checked by this ray yet.
 - **Next:** Run the check; route missing goal details to each owning ray and refresh the board.

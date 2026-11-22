@@ -1,11 +1,9 @@
-#!/usr/bin/env node
-'use strict';
-const fs = require('node:fs');
-const path = require('node:path');
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const file = process.argv[2];
 if (!file || process.argv.length > 3) {
-  console.error('Usage: node tools/check-goals PATH/GOALS.md');
+  console.error('Usage: node tools/check-goals.mjs PATH/GOALS.md');
   process.exit(2);
 }
 let text;

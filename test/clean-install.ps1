@@ -17,9 +17,13 @@ function Expect-Node-Failure([string[]]$Values) {
   if ($code -eq 0) { throw 'Expected a failing Node check' }
 }
 try {
-  if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'Node.js 18+ is required' }
-  Run-Node @((Join-Path $Repo 'tools/check-goals'), (Join-Path $Repo 'examples/demo-ray/GOALS.md'))
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'Node.js 20+ is required' }
+  if ([int]((& node -p 'process.versions.node.split(".")[0]').Trim()) -lt 20) {
+    throw 'Node.js 20+ is required'
+  }
+  Run-Node @((Join-Path $Repo 'tools/check-goals.mjs'), (Join-Path $Repo 'examples/demo-ray/GOALS.md'))
   Write-Output 'PASS fixture: goal file is valid'
+  Run-Node @((Join-Path $Repo 'test/tools-portability.mjs'))
 
   foreach ($agent in @('claude-code','codex','claude-desktop')) {
     $root = Join-Path $Tmp ($agent + ' root')
@@ -33,9 +37,9 @@ try {
       if (-not (Test-Path -LiteralPath (Join-Path $root "$ray/$rule"))) {
         throw "Missing $ray rule for $agent"
       }
-      Run-Node @((Join-Path $root 'tools/check-goals'), (Join-Path $root "$ray/GOALS.md"))
+      Run-Node @((Join-Path $root 'tools/check-goals.mjs'), (Join-Path $root "$ray/GOALS.md"))
     }
-    Run-Node @((Join-Path $root 'tools/check-rays'), $root)
+    Run-Node @((Join-Path $root 'tools/check-rays.mjs'), $root)
     if (-not (Test-Path -LiteralPath (Join-Path $root 'board.html'))) { throw 'Missing board' }
     Write-Output "PASS install: $agent rules, rays, goals, and board"
   }
@@ -59,13 +63,13 @@ try {
     [IO.File]::WriteAllText((Join-Path $demo 'dist/index.html'), '<!doctype html><html><a href="absent.html">Missing</a></html>')
     Expect-Node-Failure @('checks/links.mjs')
   } finally { Pop-Location }
-  Run-Node @((Join-Path $root 'tools/board'), $root)
+  Run-Node @((Join-Path $root 'tools/board.mjs'), $root)
   Write-Output 'PASS demo: offline build, links, and board'
   Write-Output 'PASS negative: broken local link fails'
 
   $bad = Join-Path $Tmp 'missing-check.md'
   [IO.File]::WriteAllText($bad, "# missing`n`n## 1. Broken`n- **Want:** Example`n- **Now:** New`n- **Next:** Fix`n")
-  Expect-Node-Failure @((Join-Path $Repo 'tools/check-goals'), $bad)
+  Expect-Node-Failure @((Join-Path $Repo 'tools/check-goals.mjs'), $bad)
   Write-Output 'PASS negative: missing Check fails'
   Write-Output 'PASS clean-install.ps1'
 } finally {

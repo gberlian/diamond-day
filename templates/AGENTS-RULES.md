@@ -18,7 +18,7 @@ Use `docs/goals/<goal>/` for research and proof, `decisions/` for decisions, `ha
 
 ## Human-facing output
 
-Write a short Markdown change note: what changed, what passed or failed, and what action is needed. Prefer a new note containing new information over reopening an old one. After writing it, run `node ../tools/open-note docs/changes/FILE.md` if the session has permission to open local apps; otherwise give the exact path. Update the local board with `node ../tools/board ..`. Keep terminal replies short.
+Write a short Markdown change note: what changed, what passed or failed, and what action is needed. Prefer a new note containing new information over reopening an old one. After writing it, run `node ../tools/open-note.mjs docs/changes/FILE.md` if the session has permission to open local apps; otherwise give the exact path. Update the local board with `node ../tools/board.mjs ..`. Keep terminal replies short.
 
 ## Handoffs and restarts
 

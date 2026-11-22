@@ -1,6 +1,6 @@
 # Claude Code
 
-1. Install Claude Code from the [official setup guide](https://code.claude.com/docs/en/quickstart) and Node.js 18+.
+1. Install Claude Code from the [official setup guide](https://code.claude.com/docs/en/quickstart) and Node.js 20+.
 2. Run `bash install.sh --agent claude-code --root ./my-rays --ray website --demo`, or the equivalent `install.ps1`.
 3. In a terminal, change directory to `my-rays/demo` and run `claude`. The installer puts `CLAUDE.md` **inside each ray**, where Claude Code reads project instructions on launch. Do not place the ray rule only at the root of an unrelated checkout.
 4. First prompt: "Read GOALS.md and plans/resume.md, run every Check, fix failures, then work every Next. Update proof and open a change note."
@@ -19,7 +19,7 @@ Claude Code reads project `CLAUDE.md` at `./CLAUDE.md` or `./.claude/CLAUDE.md`;
       {
         "matcher": "startup|resume",
         "hooks": [
-          { "type": "command", "command": "node ../tools/check-goals GOALS.md" }
+          { "type": "command", "command": "node ../tools/check-goals.mjs GOALS.md" }
         ]
       }
     ]
@@ -31,6 +31,6 @@ Run from the ray folder and confirm the hook is trusted and executes in your ins
 
 ## Show the result
 
-The ray writes `docs/changes/<topic>.md`, then calls `node ../tools/open-note docs/changes/<topic>.md` (opens the default Markdown app). It refreshes the snapshot board with `node ../tools/board ..` and can open `../board.html`. A separate viewer or live board is optional. Without desktop app-launch permission, open the file yourself. See [board and viewer](board-and-viewer.md).
+The ray writes `docs/changes/<topic>.md`, then calls `node ../tools/open-note.mjs docs/changes/<topic>.md` (opens the default Markdown app). It refreshes the snapshot board with `node ../tools/board.mjs ..` and can open `../board.html`. A separate viewer or live board is optional. Without desktop app-launch permission, open the file yourself. See [board and viewer](board-and-viewer.md).
 
 A running terminal or external supervisor is required for long-lived execution; this package does not start a background Claude daemon.

@@ -1,8 +1,8 @@
 # Local board and human-readable notes
 
-The core package works with no other repository. Each ray writes short Markdown documents under `docs/changes/`. Its instructions say to open new notes with `node ../tools/open-note docs/changes/FILE.md`; this launches the OS default Markdown application on macOS, Linux (with `xdg-open`), or Windows. When a graphical opener is unavailable, the script prints the file path and exits nonzero so the agent can give the human the path.
+The core package works with no other repository. Each ray writes short Markdown documents under `docs/changes/`. Its instructions say to open new notes with `node ../tools/open-note.mjs docs/changes/FILE.md`; this launches the OS default Markdown application on macOS, Linux (with `xdg-open`), or Windows. When a graphical opener is unavailable, the script prints the file path and exits nonzero so the agent can give the human the path.
 
-`node tools/board .` from the installed rays root generates `board.html`. It reads `rays.txt` and each ray's `GOALS.md` and shows Want, Check, Now, and Next. This is a **snapshot of written state**, not a live pass/fail dashboard, queue monitor, or background restarter. Refresh it after each meaningful update. Do not mistake an old Now value for a current check.
+`node tools/board.mjs .` from the installed rays root generates `board.html`. It reads `rays.txt` and each ray's `GOALS.md` and shows Want, Check, Now, and Next. This is a **snapshot of written state**, not a live pass/fail dashboard, queue monitor, or background restarter. Refresh it after each meaningful update. Do not mistake an old Now value for a current check.
 
 ## Plug in an external viewer
 

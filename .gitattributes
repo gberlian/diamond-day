@@ -1,0 +1,6 @@
+# Keep interpreters, tests, and installed starters independent of checkout settings.
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.mjs text eol=lf
+templates/** text eol=lf
+test/deny-list.txt text eol=lf

@@ -4,9 +4,12 @@ REPO=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-command -v node >/dev/null 2>&1 || { echo "FAIL: Node.js 18+ is required" >&2; exit 1; }
-node "$REPO/tools/check-goals" "$REPO/examples/demo-ray/GOALS.md"
+command -v node >/dev/null 2>&1 || { echo "FAIL: Node.js 20+ is required" >&2; exit 1; }
+node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)' ||
+  { echo "FAIL: Node.js 20+ is required" >&2; exit 1; }
+node "$REPO/tools/check-goals.mjs" "$REPO/examples/demo-ray/GOALS.md"
 echo "PASS fixture: goal file is valid"
+node "$REPO/test/tools-portability.mjs"
 
 for agent in claude-code codex claude-desktop; do
   root="$TMP/$agent root"
@@ -22,9 +25,9 @@ for agent in claude-code codex claude-desktop; do
   esac
   for ray in coordinator website notes demo; do
     test -f "$root/$ray/$expected"
-    node "$root/tools/check-goals" "$root/$ray/GOALS.md" >/dev/null
+    node "$root/tools/check-goals.mjs" "$root/$ray/GOALS.md" >/dev/null
   done
-  node "$root/tools/check-rays" "$root" >/dev/null
+  node "$root/tools/check-rays.mjs" "$root" >/dev/null
   test -f "$root/board.html"
   echo "PASS install: $agent rules, rays, goals, and board"
 done
@@ -43,7 +46,7 @@ demo="$root/demo"
   node checks/build.mjs
   node checks/links.mjs
 )
-node "$root/tools/board" "$root" >/dev/null
+node "$root/tools/board.mjs" "$root" >/dev/null
 grep -Fq 'demo' "$root/board.html"
 echo "PASS demo: offline build, links, and board"
 
@@ -64,7 +67,7 @@ cat > "$TMP/missing-check.md" <<'BAD'
 - **Now:** Not measured.
 - **Next:** Build it.
 BAD
-if node "$REPO/tools/check-goals" "$TMP/missing-check.md" >/dev/null 2>&1; then
+if node "$REPO/tools/check-goals.mjs" "$TMP/missing-check.md" >/dev/null 2>&1; then
   echo "FAIL: missing Check accepted" >&2
   exit 1
 fi
