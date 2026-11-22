@@ -32,7 +32,7 @@ echo 'PASS regression: planted deny-list entry fails'
 cat > "$TMP/bin/grep" <<'WRAPPER'
 #!/usr/bin/env bash
 for arg in "$@"; do
-  if [[ "$arg" == '-f' ]]; then
+  if [[ "$arg" == '--exclude=deny-list.txt' ]]; then
     echo 'simulated grep failure' >&2
     exit 2
   fi
@@ -45,6 +45,6 @@ if PATH="$TMP/bin:$PATH" REAL_GREP="$(command -v grep)" \
   echo 'FAIL regression: grep error passed' >&2
   exit 1
 fi
-grep -Fq 'FAIL private: grep error' "$TMP/grep-output"
+grep -q 'FAIL private: grep error' "$TMP/grep-output"
 echo 'PASS regression: grep errors fail loudly'
 echo 'PASS no-private-regression.sh'

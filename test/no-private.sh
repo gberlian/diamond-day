@@ -49,9 +49,12 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
   printf '%s\n' "$line" >> "$TMP/deny-patterns"
 done < test/deny-list.txt
+# Literal terms as one escaped -E alternation: Git for Windows ships GNU grep 3.0, which
+# aborts (exit 134) on any -F, and on -i together with -f; a single -Ei -e works.
 if [[ -f "$TMP/deny-patterns" ]]; then
-  scan 'deny-list term' -RinFi --binary-files=without-match --exclude-dir=.git \
-    --exclude='deny-list.txt' -f "$TMP/deny-patterns" .
+  deny_regex=$(sed 's/[][\\.*^$+?(){}|/]/\\&/g' "$TMP/deny-patterns" | paste -sd'|' -)
+  scan 'deny-list term' -RinEi --binary-files=without-match --exclude-dir=.git \
+    --exclude='deny-list.txt' -e "$deny_regex" .
 fi
 
 # Scan relative filenames rather than absolute paths (the checkout may live
