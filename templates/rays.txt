@@ -1,0 +1,2 @@
+# One active ray folder per line. Add other rays below; do not list paths.
+coordinator

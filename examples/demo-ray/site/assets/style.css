@@ -1,0 +1,4 @@
+:root { font-family: system-ui, sans-serif; color: #152234; background: #fafbfc; }
+body { max-width: 42rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.6; }
+a { color: #225b98; }
+a:focus-visible { outline: 2px solid currentColor; }

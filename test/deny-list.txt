@@ -1,0 +1,4 @@
+# Generic sentinels. Do not add any actual private names or identifiers.
+placeholder-private-brand
+placeholder-internal-host
+confidential-organization-marker

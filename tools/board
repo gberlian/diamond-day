@@ -1,0 +1,51 @@
+#!/usr/bin/env node
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+
+const root = path.resolve(process.argv[2] || '.');
+const htmlEscape = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+let names;
+try { names = fs.readFileSync(path.join(root, 'rays.txt'), 'utf8')
+  .split(/\r?\n/).map(s => s.trim()).filter(s => s && !s.startsWith('#')); }
+catch (err) { console.error(`FAIL board: ${err.message}`); process.exit(1); }
+
+const panels = [];
+for (const name of names) {
+  if (!/^[a-z][a-z0-9-]*$/.test(name)) { console.error('FAIL board: invalid ray name'); process.exit(1); }
+  const file = path.join(root, name, 'GOALS.md');
+  if (!fs.existsSync(file)) { console.error(`FAIL board: missing GOALS.md for ${name}`); process.exit(1); }
+  const text = fs.readFileSync(file, 'utf8');
+  // A simpler split avoids depending on a particular goal number.
+  const split = text.split(/^##\s+(?:\d+[.)]\s+)?(.+?)\s*$/m);
+  const goals = [];
+  for (let i = 1; i + 1 < split.length; i += 2) {
+    const title = split[i];
+    const body = split[i + 1];
+    const value = key => {
+      const m = body.match(new RegExp(`^\\s*-\\s*\\*\\*${key}:\\*\\*\\s*(.*)$`, 'mi'));
+      return m ? m[1].trim() : '(not supplied)';
+    };
+    const cell = key => `<dt>${key}</dt><dd>${htmlEscape(value(key))}</dd>`;
+    goals.push(`<section class="goal"><h3>${htmlEscape(title)}</h3><dl>${cell('Want')}${cell('Check')}${cell('Now')}${cell('Next')}</dl></section>`);
+  }
+  const href = `${encodeURIComponent(name)}/GOALS.md`;
+  panels.push(`<article class="ray"><h2><a href="${href}">${htmlEscape(name)}</a></h2>${goals.join('\n') || '<p>No goal headings.</p>'}</article>`);
+}
+const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ray board</title><style>
+:root{font-family:system-ui,sans-serif;color:#18283b;background:#f7f8fa}
+body{max-width:70rem;margin:1.8rem auto;padding:0 1rem;line-height:1.5}
+header p{color:#49566a}a{color:#174d87}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr));gap:1rem}
+.ray{background:#fff;border:1px solid #d6dbe2;padding:1rem;border-radius:6px}
+.ray h2{margin:0 0 .75rem}.goal{border-top:1px solid #e4e7ed;margin-top:1rem}
+.goal h3{font-size:1rem}.goal dl{display:grid;grid-template-columns:4.5rem 1fr;gap:.4rem .7rem}
+.goal dt{font-weight:700}.goal dd{margin:0;overflow-wrap:anywhere}
+</style></head><body><header><h1>Ray board</h1>
+<p>Written status only. Re-run each Check before calling any result current. Regenerate with <code>node tools/board .</code>.</p></header>
+<main>${panels.join('\n')}</main></body></html>\n`;
+const output = path.join(root, 'board.html');
+fs.writeFileSync(output, html, 'utf8');
+console.log(`PASS board: wrote ${output} for ${names.length} ray(s) (written state, not live checks)`);
