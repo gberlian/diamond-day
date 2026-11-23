@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "FAIL install.sh line $LINENO: $BASH_COMMAND" >&2' ERR
 
 SOURCE_DIR=$(CDPATH= cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT="./rays"
