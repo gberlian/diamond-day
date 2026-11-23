@@ -50,6 +50,14 @@ node tools/screenshots.mjs
 
 Set `CHROME_PATH` to a browser executable if automatic discovery fails. The capture script uses no Puppeteer, doesn't fake colors, starts its own loopback board, fixes the link in a disposable demo, and writes `docs/img/board-failing.png` and `docs/img/board-repaired.png`. It fails with a clear error if no browser can be found.
 
+## Review every agent reply before applying it
+
+`diamond` turns agent ZIPs or folders into `reply/<job>` branches based on the target
+repository's current `HEAD`, with a per-reply `DIFF.md` review page, one index,
+and explicit merge/skip decisions. It never checks out the branch or modifies
+your working tree during a scan. See the [install-free guide and offline
+walkthrough](guides/diamond.md) for usage, scheduler checks, and the demo inbox.
+
 ## The daily goal loop
 
 Each goal records **Want** (outcome), **Check** (prose criterion plus explicit `check:` declaration), **Now** (evidence), and **Next** (action). A ray keeps restart context in `plans/resume.md`; notes and handoffs live in its own folders. On each restart read the goals and resume file, run the declared checks, fix failures, advance Next, and record proof. No `GOALS.md` prose or text in backticks is executed merely because it mentions a command.

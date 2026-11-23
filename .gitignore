@@ -11,3 +11,9 @@ Thumbs.db
 .diamond-day/
 board.html
 ci-demo-root/
+
+# Generated diamond review pages and local decision records.
+.diamond/
+*.DIFF.md
+# The offline walkthrough intentionally includes one small ZIP reply.
+!examples/demo-ray/inbox/*.zip
