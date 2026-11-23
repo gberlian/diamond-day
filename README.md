@@ -1,126 +1,95 @@
 # diamond-day
 
-A folder-based way to keep AI coding sessions working toward goals over days. A **ray** is one folder and one agent session. It is organized around outcomes, not a list of commands that gets stale. The agent can restart from files without depending on old chat context.
+A public, folder-based way to keep AI coding sessions working toward outcomes. Each **ray** is a folder with `GOALS.md`; each goal has a readable acceptance criterion and a **runnable check or explicit manual judgement**. The local board shows recorded proof, not inferred status.
 
-Works with Claude Code, Codex CLI, or Claude Desktop. Requires Node.js 20+ for the included checks and local board. Git and the agent itself are separate installs. No account, hosted service, proxy, or other repository is needed for the demo.
+Requires Node.js 20+ and no npm dependencies. A shell is needed only for installation (Bash on macOS/Linux, PowerShell on Windows). An AI account is **not** needed to try the demo.
 
-## Quick start (macOS, Linux, or Git Bash)
+## A working demo in under five minutes
 
-From this repository, with Bash:
+From a checkout or extracted repository archive, on macOS/Linux:
 
 ```sh
-bash install.sh --agent claude-code --root ./my-rays --ray website --demo
-cd my-rays/demo
-node ../tools/check-goals.mjs GOALS.md
-node checks/build.mjs
-node checks/links.mjs
-node ../tools/board.mjs ..
+bash install.sh --root "./my-rays" --demo
+cd my-rays
+node tools/checks.mjs run
+node tools/checks.mjs status
+node tools/board.mjs serve .
 ```
 
-## Windows 11: from zero to a working demo
-
-You need **Node.js 20 or newer** and PowerShell 7 for these commands. Git Bash is
-optional; an AI-agent account is **not** needed to run the demo. If they are not
-installed, open Windows Terminal (PowerShell) and install them with Windows Package
-Manager, then **open a new terminal** so both commands are on your PATH:
+On Windows PowerShell:
 
 ```powershell
-winget install --id OpenJS.NodeJS.LTS --exact
-winget install --id Microsoft.PowerShell --exact
-node --version
-pwsh --version
+.\install.ps1 -Root '.\my-rays' -Demo
+Set-Location '.\my-rays'
+node tools/checks.mjs run
+node tools/checks.mjs status
+node tools/board.mjs serve .
 ```
 
-Save or rename the downloaded repository archive to `diamond-day.zip` in your working folder.
-Open PowerShell 7 (`pwsh`) in that folder and run the following commands **exactly**.
-The chosen folder name `my rays` intentionally includes a space.
+Open the localhost URL printed by the board. The demo initially shows **PASS** for the real static-site build, **FAIL** for an intentionally broken local link, and **MANUAL** for a review requiring human judgement. The coordinator's structural check is also runnable; no claims depend on fabricated checks. The board has an accessible Run button for every automated goal, the last run time, the last line of output, and an expandable output tail.
 
-```powershell
-Unblock-File -LiteralPath .\diamond-day.zip
-Expand-Archive -LiteralPath .\diamond-day.zip -DestinationPath .\diamond-day
-Set-Location .\diamond-day
-pwsh -NoProfile -File .\install.ps1 -Agent claude-code -Root '.\my rays' -Ray website -Demo
-Set-Location '.\my rays\demo'
-node '..\tools\check-goals.mjs' .\GOALS.md
-node .\checks\build.mjs
-node .\checks\links.mjs
-node '..\tools\board.mjs' ..
-Invoke-Item '..\board.html'
+![Real browser capture of the demo board: build PASS, broken link FAIL and human review MANUAL](docs/img/board-failing.png)
+
+Repair the broken link yourself. In `my-rays/demo/site/index.html`, replace `href="missing.html"` with `href="about.html#purpose"`. Then run these commands **from the `my-rays` root**:
+
+```sh
+node tools/checks.mjs run demo 1 --force
+node tools/checks.mjs run demo 2 --force
+node tools/checks.mjs status
 ```
 
-The goal checker should print **two GOAL lines** and `PASS goals: 2 goal(s)`.
-The build and link checks should print `PASS build` and `PASS links`, and the last
-command opens the local ray board in your browser. This completes a working offline
-demo; installing Claude Code, Codex, or Claude Desktop is only necessary to start an
-AI agent. Use `-Agent codex` or `-Agent claude-desktop` when creating a real ray for
-those applications.
+Refresh the browser: the links goal is now **PASS**. The `--force` flag overrides the ten-minute check cooldown for a deliberate CLI repair/recheck. The board's Run button does not bypass cooldown.
 
-To run the repository tests in PowerShell 7, return to the repository directory:
+![Real browser capture after repairing the broken link and rerunning the checks](docs/img/board-repaired.png)
 
-```powershell
-Set-Location ../..
-pwsh -NoProfile -File .\test\clean-install.ps1
-pwsh -NoProfile -File .\test\no-private.ps1
-pwsh -NoProfile -File .\test\no-private-regression.ps1
+The screenshots above are captured from a fresh, independently installed demo using real Chrome/Edge/Chromium and the Chrome DevTools Protocol. To reproduce both PNGs, with a locally installed browser:
+
+```sh
+node tools/screenshots.mjs
 ```
 
-If you have **Git Bash** installed, the same repository also supports:
+Set `CHROME_PATH` to a browser executable if automatic discovery fails. The capture script uses no Puppeteer, doesn't fake colors, starts its own loopback board, fixes the link in a disposable demo, and writes `docs/img/board-failing.png` and `docs/img/board-repaired.png`. It fails with a clear error if no browser can be found.
 
-```bash
+## The daily goal loop
+
+Each goal records **Want** (outcome), **Check** (prose criterion plus explicit `check:` declaration), **Now** (evidence), and **Next** (action). A ray keeps restart context in `plans/resume.md`; notes and handoffs live in its own folders. On each restart read the goals and resume file, run the declared checks, fix failures, advance Next, and record proof. No `GOALS.md` prose or text in backticks is executed merely because it mentions a command.
+
+Portable grammar:
+
+```text
+  check: run node checks/build.mjs timeout=15s
+  check: http GET http://localhost:5195/board 200
+  check: file docs/report.md younger 6h
+  check: manual
+```
+
+For manual checks, record an explicit verdict from the installed root:
+
+```sh
+node tools/checks.mjs report demo 3 pass "Reviewed the built pages"
+```
+
+The full grammar, safety limits, stale rule and cooldown are in [guides/checks.md](guides/checks.md). Reports and automatic results persist locally under `.diamond-day/checks-history.json` in the installed root, not in the public repository. PASS/FAIL results become STALE after 24 hours; MANUAL means no judgement yet; NEVER means no recorded run or no valid declaration. The service keeps 50 results per goal and limits concurrent runs to two.
+
+## Use this in a real ray
+
+Install as many rays as needed: `--ray website --ray notes` (or `-Ray` on PowerShell). Each install creates `rays.txt`, `templates/`, `tools/`, a coordinator ray and a per-agent rules file. All installers preserve existing files; they never overwrite an existing goal. `--agent codex` or `--agent claude-desktop` selects the appropriate instruction file. For example, from `my-rays/website`, an agent can read `GOALS.md` and `plans/resume.md`, invoke `node ../tools/checks.mjs run website`, and address failures. Replace the starter `check: manual` only when a truthful verifier exists.
+
+`node tools/board.mjs serve .` is the live board, listening only on the local machine. It serves `/board` and `/api/board` and accepts same-origin POSTs to run declared checks; it is **not a remote execution service**. `node tools/board.mjs .` still creates a read-only offline snapshot `board.html`, for the old workflow and tests. The board schedules declared checks automatically no more than once per ten minutes, and the explicit button respects the same limit.
+
+This is a filesystem workflow and local validation service, not an autonomous agent restarter. The host agent needs a human start or a separately configured supervisor.
+
+## Verification
+
+Run these from the public repository root:
+
+```sh
+node --test test/
 bash test/clean-install.sh
 bash test/no-private.sh
 bash test/no-private-regression.sh
 ```
 
-The demo builds a two-page static site and checks every local link. Open `<rays-root>/board.html` for the local, read-only ray board. To start an actual agent, open a terminal *in* your demo ray folder and run `claude`, then tell it: "Read GOALS.md and plans/resume.md. Run every Check, repair failures, then work on Next." For Codex, use `--agent codex` and run `codex`. For Claude Desktop, use `--agent claude-desktop` and follow [its Project setup](guides/claude-desktop.md). The demo and all the scripts run without an AI account.
+On Windows, use `pwsh -NoProfile -File test/clean-install.ps1`, `test/no-private.ps1`, and `test/no-private-regression.ps1`. CI runs the install, demo, Node tests, disclosure scans and real browser capture on Windows, macOS and Linux, then uploads screenshots as artifacts.
 
-## The loop
-
-```mermaid
-flowchart TD
-    A[Start or restart in one ray] --> B[Read GOALS.md and resume]
-    B --> C[Run every goal Check]
-    C --> D{A Check fails?}
-    D -->|Yes| E[Repair and rerun]
-    E --> C
-    D -->|No| F[Work each goal's Next]
-    F --> G[Record proof in Now]
-    G --> H[Update resume and short change note]
-    H --> I[Refresh board and open note]
-    I --> J{Hard separate job?}
-    J -->|Yes| K[Handoff with real files]
-    K --> L[Review and test returned files]
-    L --> C
-    J -->|No| A
-```
-
-Each goal in `GOALS.md` says **Want** (outcome), **Check** (repeatable proof), **Research** (where its evidence lives), **Now** (current evidence), and **Next** (the next action). On every start, execute *all* checks, fix failures first, then advance each goal. The checker validates the goal format; it does **not** execute a Check. The ray must run its actual commands.
-
-Keep one `plans/resume.md` current after each meaningful step: Now, In flight, Next, Waiting on the human, and Gotchas. Decisions go in `decisions/`. Short, readable result notes go in `docs/changes/`. Nothing important should exist only in the chat.
-
-## A day with two rays
-
-The website ray starts, runs the build and link checks, fixes a broken link, and records the successful commands under Now. It writes a short note with the change and proof, opens it for the human, and refreshes the board. A longer redesign gets a file-based handoff to another model; the ray checks that result before applying it. Meanwhile, the coordinator ray checks that every active ray has a readable goal file and routes the next request to the right folder. Later, a fresh website session reads the files and repeats the checks.
-
-## What gets installed
-
-The install scripts create a root with `rays.txt`, `templates/`, `tools/`, an automatic `coordinator/` ray, and each requested ray. Each ray gets `GOALS.md`, `README.md`, `plans/resume.md`, and one agent instruction file. They create missing files and directories only; an existing file is never replaced. New ray names are appended to `rays.txt` without erasing other entries. Use `--demo` / `-Demo` to add the independently testable demo. Use repeated `--ray NAME` / `-Ray NAME` for more than one ray.
-
-| Part | Needed? | Where it fits |
-| --- | --- | --- |
-| Goal files, checks, resume, coordinator | Core | Included in each installed root |
-| Plain notes and local HTML board | Core | `tools/open-note.mjs`, `tools/board.mjs`; board is a generated snapshot, not live monitoring |
-| External document viewer | Optional | Replace the OS note opener after writing a change note |
-| External live board/restarter | Optional | Read `rays.txt`, goals, notes, and handoff statuses; must be configured separately |
-| Model-traffic proxy | Optional | Configure the agent's supported networking settings outside this repository |
-| File-handoff bridge | Optional | Ship a handoff brief and attachments, receive files, review and test locally |
-
-The optional integration points are described together in [board and viewer](guides/board-and-viewer.md) and [proxy and bridge](guides/proxy-and-bridge.md). No private tools or unpublished URLs are required.
-
-## Use a real ray
-
-Replace the starter Check (`node ../tools/check-goals.mjs GOALS.md`) with a command that proves the **actual** outcome, then run it. Put active ray names one per line in `rays.txt`. Put repository paths you authorize in that ray's `README.md`; an agent should not edit unrelated repositories. The root board can be regenerated with `node tools/board.mjs .` from the rays root. It reflects written **Now** values, not live validation.
-
-Agent guides: [Claude Code](guides/claude-code.md), [Codex CLI](guides/codex.md), [Claude Desktop](guides/claude-desktop.md). See [coordinator](guides/coordinator.md), [handoffs](guides/handoffs.md), and [contributing](CONTRIBUTING.md).
-
-This is a workspace convention, not an always-on daemon. The agent needs a human start or an external supervisor to run again; the checks and written state make that restart reliable.
+Agent guides: [Claude Code](guides/claude-code.md), [Codex](guides/codex.md), [Claude Desktop](guides/claude-desktop.md). Other workflows: [coordinator](guides/coordinator.md), [handoffs](guides/handoffs.md), [board and notes](guides/board-and-viewer.md).

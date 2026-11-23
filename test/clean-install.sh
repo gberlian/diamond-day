@@ -44,6 +44,13 @@ demo="$root/demo"
 (
   cd "$demo"
   node checks/build.mjs
+  if node checks/links.mjs >/dev/null 2>&1; then
+    echo "FAIL: deliberately broken demo link went undetected" >&2; exit 1
+  fi
+  echo "PASS demo: initial link check FAILS as designed"
+  sed -i.bak 's/href="missing.html"/href="about.html#purpose"/' site/index.html
+  rm -f site/index.html.bak
+  node checks/build.mjs
   node checks/links.mjs
 )
 node "$root/tools/board.mjs" "$root" >/dev/null

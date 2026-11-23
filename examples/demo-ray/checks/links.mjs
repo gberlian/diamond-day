@@ -27,14 +27,14 @@ for (const page of files) {
     const target = clean ? resolve(dirname(page), clean) : page;
     const rel = relative(root, target);
     if (rel === '..' || rel.startsWith(`..${sep}`) || !existsSync(target)) {
-      errors.push(`${page}: unresolved ${raw}`);
+      errors.push(`dist/${relative(root, page).split(sep).join("/")}: unresolved ${raw}`);
       continue;
     }
     if (fragment) {
       const content = readFileSync(target, 'utf8');
       const escaped = fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       if (!new RegExp(`\\bid\\s*=\\s*["']${escaped}["']`).test(content)) {
-        errors.push(`${page}: missing fragment ${raw}`);
+        errors.push(`dist/${relative(root, page).split(sep).join("/")}: missing fragment ${raw}`);
         continue;
       }
     }

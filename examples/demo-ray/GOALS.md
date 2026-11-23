@@ -1,15 +1,25 @@
 # demo
 
 ## 1. Static pages build
-- **Want:** Two readable HTML pages are copied into a clean output folder.
-- **Check:** `node checks/build.mjs`
+- **Want:** Two HTML pages and their stylesheet compile to dist/.
+- **Check:** Two pages and a stylesheet are copied, with valid document titles.
+  check: run node checks/build.mjs timeout=15s
 - **Research:** `docs/goals/build/`
-- **Now:** The source contains two pages and one stylesheet; run Check at session start to prove the output.
-- **Next:** Add a visible release stamp to the home page, then rerun the build check.
+- **Now:** The build is checked every time the demo runs.
+- **Next:** Keep the generated pages in sync with site/.
 
-## 2. Local links work
-- **Want:** Every local link in the built pages points to a real file or page fragment.
-- **Check:** `node checks/build.mjs && node checks/links.mjs`
+## 2. Every local link resolves
+- **Want:** No missing local targets or fragments in the generated site.
+- **Check:** The link verifier finds no unresolved destination.
+  check: run node checks/links.mjs timeout=15s
 - **Research:** `docs/goals/links/`
-- **Now:** The source links home and about pages; rerun Check before claiming there are no broken links.
-- **Next:** Add a third page with a link from home, then rerun the link check.
+- **Now:** An intentionally broken link in site/index.html makes this check FAIL.
+- **Next:** Replace missing.html with about.html#purpose, rebuild, and rerun this check.
+
+## 3. Human acceptance
+- **Want:** A human confirms the demo clearly communicates its goals.
+- **Check:** Review the pages and record an explicit judgement with supporting notes.
+  check: manual
+- **Research:** `docs/goals/review/`
+- **Now:** No human report has been submitted.
+- **Next:** Use node tools/checks.mjs report demo 3 pass "reviewed" from the installed root.

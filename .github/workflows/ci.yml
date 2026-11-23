@@ -1,0 +1,56 @@
+name: install-demo-checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Node test suite
+        run: node --test test/
+      - name: Clean installation and disclosure scan (Bash)
+        shell: bash
+        run: |
+          bash test/clean-install.sh
+          bash test/no-private.sh
+          bash test/no-private-regression.sh
+      - name: Clean installation and disclosure scan (PowerShell)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File test/clean-install.ps1
+          pwsh -NoProfile -File test/no-private.ps1
+          pwsh -NoProfile -File test/no-private-regression.ps1
+      - name: Installed demo: run and verify lights
+        shell: bash
+        run: |
+          bash install.sh --root "./ci-demo-root" --demo
+          node "./ci-demo-root/tools/checks.mjs" run
+          node "./ci-demo-root/tools/checks.mjs" status
+          node --input-type=module -e '
+            import fs from "node:fs";
+            import path from "node:path";
+            const h = JSON.parse(fs.readFileSync(path.join("ci-demo-root", ".diamond-day", "checks-history.json")));
+            if (h.goals["demo/1"]?.at(-1)?.status !== "pass" || h.goals["demo/2"]?.at(-1)?.status !== "fail") process.exit(1);
+            console.log("PASS demo: real PASS and FAIL recorded; manual goal declared");
+          '
+      - name: Capture actual Chrome/Edge demo
+        run: node tools/screenshots.mjs
+      - name: Upload generated browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-board-${{ matrix.os }}
+          path: docs/img/*.png
+          if-no-files-found: warn

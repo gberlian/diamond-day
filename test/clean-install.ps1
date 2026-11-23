@@ -59,6 +59,12 @@ try {
   Push-Location $demo
   try {
     Run-Node @('checks/build.mjs')
+    Expect-Node-Failure @('checks/links.mjs')
+    Write-Output 'PASS demo: initial link check FAILS as designed'
+    $source = Join-Path $demo 'site/index.html'
+    $fixed = [IO.File]::ReadAllText($source).Replace('href="missing.html"', 'href="about.html#purpose"')
+    [IO.File]::WriteAllText($source, $fixed)
+    Run-Node @('checks/build.mjs')
     Run-Node @('checks/links.mjs')
     [IO.File]::WriteAllText((Join-Path $demo 'dist/index.html'), '<!doctype html><html><a href="absent.html">Missing</a></html>')
     Expect-Node-Failure @('checks/links.mjs')

@@ -70,7 +70,7 @@ for file in "$SOURCE_DIR"/templates/*; do
   [[ -f "$file" ]] || continue
   copy_missing "$file" "$ROOT/templates/$(basename "$file")"
 done
-for name in check-goals.mjs check-rays.mjs board.mjs open-note.mjs; do
+for name in check-goals.mjs check-rays.mjs checks.mjs board.mjs open-note.mjs; do
   copy_missing "$SOURCE_DIR/tools/$name" "$ROOT/tools/$name"
 done
 copy_missing "$SOURCE_DIR/templates/root-README.md" "$ROOT/README.md"
@@ -116,10 +116,10 @@ if [[ ! -e "$ROOT/board.html" && ! -L "$ROOT/board.html" ]] && command -v node >
 fi
 echo "PASS install: agent=$AGENT root=$ROOT new=$created preserved=$preserved"
 echo "Next: cd \"$ROOT/demo\" (if --demo) or cd \"$ROOT/<ray>\""
-echo "Run: node ../tools/check-goals.mjs GOALS.md; run every Check listed in GOALS.md"
+echo "Run: node ../tools/checks.mjs run; node ../tools/checks.mjs status"
 case "$AGENT" in
   claude-code) echo "Start the ray agent with: claude" ;;
   codex) echo "Start the ray agent with: codex" ;;
   claude-desktop) echo "Create a Claude Desktop Project for each ray; paste PROJECT-INSTRUCTIONS.md into Project instructions." ;;
 esac
-echo "Board: $ROOT/board.html (regenerate with node \"$ROOT/tools/board.mjs\" \"$ROOT\")"
+echo "Board: node \"$ROOT/tools/board.mjs\" serve \"$ROOT\""

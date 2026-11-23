@@ -1,10 +1,11 @@
 # {{RAY_NAME}}
 
-On each start, run every Check in this ray folder. Replace this example goal with a real, measurable outcome.
+Each goal declares an executable check or an explicit manual judgement. Replace this example with a measurable outcome.
 
 ## 1. First working result
-- **Want:** A concrete outcome a person can try.
-- **Check:** `node ../tools/check-goals.mjs GOALS.md` (format check only; replace with a real outcome test).
+- **Want:** A concrete outcome someone can try.
+- **Check:** A human reviews the result until an actual automated verifier exists.
+  check: manual
 - **Research:** `docs/goals/first-result/`
-- **Now:** Newly created. No outcome has been proven yet.
-- **Next:** Choose one small result, build its executable check, then run it and record the output.
+- **Now:** Newly installed; no outcome has been proven.
+- **Next:** Create a verifier, replace check: manual, then run node ../tools/checks.mjs run.

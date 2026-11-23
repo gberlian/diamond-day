@@ -72,7 +72,7 @@ function Render-Missing([string]$source, [string]$destination, [string]$ray) {
 foreach ($file in (Get-ChildItem -LiteralPath (Join-Path $SourceDir 'templates') -File)) {
   Copy-Missing $file.FullName (Join-Path $RootDir ("templates/" + $file.Name))
 }
-foreach ($name in @('check-goals.mjs','check-rays.mjs','board.mjs','open-note.mjs')) {
+foreach ($name in @('check-goals.mjs','check-rays.mjs','checks.mjs','board.mjs','open-note.mjs')) {
   Copy-Missing (Join-Path $SourceDir ("tools/" + $name)) (Join-Path $RootDir ("tools/" + $name))
 }
 Copy-Missing (Join-Path $SourceDir 'templates/root-README.md') (Join-Path $RootDir 'README.md')
@@ -125,10 +125,10 @@ if (-not [IO.File]::Exists($boardFile) -and (Get-Command node -ErrorAction Silen
 }
 Write-Output "PASS install: agent=$agent root=$RootDir new=$script:created preserved=$script:preserved"
 Write-Output "Next: Set-Location '$RootDir/demo' (if -Demo), or Set-Location '$RootDir/<ray>'"
-Write-Output 'Run: node ../tools/check-goals.mjs GOALS.md; then run every Check listed in GOALS.md'
+Write-Output 'Run: node ../tools/checks.mjs run; node ../tools/checks.mjs status'
 switch ($agent) {
   'claude-code' { Write-Output 'Start the ray agent with: claude' }
   'codex' { Write-Output 'Start the ray agent with: codex' }
   'claude-desktop' { Write-Output 'Create a Claude Desktop Project per ray; paste PROJECT-INSTRUCTIONS.md into its instructions.' }
 }
-Write-Output "Board: $boardFile (regenerate with node tools/board.mjs $RootDir)"
+Write-Output "Board: node tools/board.mjs serve $RootDir"
