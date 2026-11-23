@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { CheckError, CheckService } from './checks.mjs';
 
 const ownFile = fileURLToPath(import.meta.url);
+// macOS temp folders are symlinks (/var -> /private/var): compare real paths.
+const isMain = (arg) => { try { return fs.realpathSync(path.resolve(arg)) === fs.realpathSync(ownFile); } catch { return false; } };
 const LOCALHOST_IP = [127, 0, 0, 1].join('.');
 const esc = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
   .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -150,6 +152,6 @@ async function main() {
     console.log(`PASS board: wrote ${file}`);
   }
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === ownFile) {
+if (process.argv[1] && isMain(process.argv[1])) {
   main().catch(e => { console.error(`FAIL board: ${e.message}`); process.exitCode = 1; });
 }

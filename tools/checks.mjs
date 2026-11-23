@@ -10,6 +10,8 @@ export const STALE_MS = 24 * 60 * 60_000;
 export const OUTPUT_BYTES = 2048;
 export const HISTORY_LIMIT = 50;
 const ownFile = fileURLToPath(import.meta.url);
+// macOS temp folders are symlinks (/var -> /private/var): compare real paths.
+const isMain = (arg) => { try { return fs.realpathSync(path.resolve(arg)) === fs.realpathSync(ownFile); } catch { return false; } };
 const inside = (base, target) => {
   const rel = path.relative(base, target);
   return rel !== '' && rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
@@ -457,7 +459,7 @@ async function main() {
     process.exitCode = 2;
   }
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === ownFile) {
+if (process.argv[1] && isMain(process.argv[1])) {
   main().catch(error => {
     console.error(`FAIL checks: ${error.message}`);
     process.exitCode = 1;
