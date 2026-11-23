@@ -65,6 +65,17 @@ const getJSON = url => new Promise((resolve, reject) => {
   }).once('error', reject);
 });
 
+// A fresh tab answers sooner than the start-up tab on slow CI machines (Windows runners timed out on Page.enable).
+const newTarget = port => new Promise((resolve, reject) => {
+  const req = http.request({ host: LOCALHOST_IP, port, method: 'PUT', path: '/json/new?about:blank' }, res => {
+    let result = '';
+    res.on('data', data => result += data);
+    res.once('end', () => { try { resolve(JSON.parse(result)); } catch (error) { reject(error); } });
+  });
+  req.once('error', reject);
+  req.end();
+});
+
 class CDP {
   constructor(socket, head) {
     this.socket = socket; this.buffer = head || Buffer.alloc(0);
@@ -253,10 +264,20 @@ async function main() {
     if (process.platform === 'linux' && process.getuid?.() === 0) flags.unshift('--no-sandbox');
     chrome = spawn(browserPath, flags, { stdio: 'ignore', windowsHide: true });
     const port = await waitChrome(profile, chrome);
-    const pages = await getJSON(`http://${LOCALHOST_IP}:${port}/json/list`);
-    const target = pages.find(p => p.type === 'page' && p.webSocketDebuggerUrl);
-    if (!target) throw Error('Browser did not expose a CDP page target');
-    cdp = await CDP.connect(target.webSocketDebuggerUrl);
+    for (let attempt = 1; ; attempt++) {
+      let target = await newTarget(port).catch(() => null);
+      if (!target?.webSocketDebuggerUrl) {
+        const pages = await getJSON(`http://${LOCALHOST_IP}:${port}/json/list`);
+        target = pages.find(p => p.type === 'page' && p.webSocketDebuggerUrl);
+      }
+      if (!target) throw Error('Browser did not expose a CDP page target');
+      cdp = await CDP.connect(target.webSocketDebuggerUrl);
+      try { await cdp.call('Page.enable'); break; } catch (error) {
+        cdp.close?.();
+        if (attempt >= 3) throw error;
+        await sleep(2000);
+      }
+    }
     await capture(cdp, board.url, path.join(out, 'board-failing.png'));
     const index = path.join(root, 'demo/site/index.html');
     fs.writeFileSync(index, fs.readFileSync(index, 'utf8').replace('href="missing.html"', 'href="about.html#purpose"'));
