@@ -32,7 +32,7 @@ jobs:
           pwsh -NoProfile -File test/clean-install.ps1
           pwsh -NoProfile -File test/no-private.ps1
           pwsh -NoProfile -File test/no-private-regression.ps1
-      - name: Installed demo: run and verify lights
+      - name: "Installed demo: run and verify lights"
         shell: bash
         run: |
           bash install.sh --root "./ci-demo-root" --demo
