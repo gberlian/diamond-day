@@ -43,9 +43,10 @@ function findBrowser() {
   throw Error('No local Chrome/Edge/Chromium found. Install a browser or set CHROME_PATH to its executable.');
 }
 
+// Cold CI runners start Chrome slowly (Ubuntu runner took over 20 s on 23 Nov).
 async function waitChrome(profile, child) {
   const activePort = path.join(profile, 'DevToolsActivePort');
-  for (let i = 0; i < 250; i++) {
+  for (let i = 0; i < 750; i++) {
     if (fs.existsSync(activePort)) {
       const [port] = fs.readFileSync(activePort, 'utf8').split(/\r?\n/);
       if (/^\d+$/.test(port)) return Number(port);
@@ -53,7 +54,7 @@ async function waitChrome(profile, child) {
     if (child.exitCode !== null) throw Error(`Browser exited before DevTools became ready (exit ${child.exitCode})`);
     await sleep(80);
   }
-  throw Error('Chrome/Edge DevTools did not start within 20s. Try CHROME_PATH with a desktop browser.');
+  throw Error('Chrome/Edge DevTools did not start within 60s. Try CHROME_PATH with a desktop browser.');
 }
 const getJSON = url => new Promise((resolve, reject) => {
   http.get(url, res => {
