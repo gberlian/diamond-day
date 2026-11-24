@@ -1,0 +1,16 @@
+{
+  "name": "diamond",
+  "displayName": "Diamond reply review",
+  "version": "0.1.0",
+  "description": "Scan agent replies at session start and turn end; review, merge, or skip with an audit reason.",
+  "author": {
+    "name": "diamond-day contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "review",
+    "agents",
+    "git",
+    "inbox"
+  ]
+}

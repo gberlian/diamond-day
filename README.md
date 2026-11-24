@@ -58,6 +58,8 @@ and explicit merge/skip decisions. It never checks out the branch or modifies
 your working tree during a scan. See the [install-free guide and offline
 walkthrough](guides/diamond.md) for usage, scheduler checks, and the demo inbox.
 
+Claude Code can automatically surface waiting replies on session start and after each turn with the [Diamond plugin](guides/diamond-plugin.md), including review and reasoned merge/skip commands.
+
 ## The daily goal loop
 
 Each goal records **Want** (outcome), **Check** (prose criterion plus explicit `check:` declaration), **Now** (evidence), and **Next** (action). A ray keeps restart context in `plans/resume.md`; notes and handoffs live in its own folders. On each restart read the goals and resume file, run the declared checks, fix failures, advance Next, and record proof. No `GOALS.md` prose or text in backticks is executed merely because it mentions a command.

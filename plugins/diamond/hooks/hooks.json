@@ -1,0 +1,41 @@
+{
+  "description": "Show pending Diamond replies without blocking Claude Code.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/diamond-hook.mjs",
+              "--config",
+              "${CLAUDE_PROJECT_DIR}/.diamond.json",
+              "--event",
+              "SessionStart"
+            ],
+            "timeout": 9
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/diamond-hook.mjs",
+              "--config",
+              "${CLAUDE_PROJECT_DIR}/.diamond.json",
+              "--event",
+              "Stop"
+            ],
+            "timeout": 9
+          }
+        ]
+      }
+    ]
+  }
+}

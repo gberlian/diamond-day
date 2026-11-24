@@ -1,0 +1,8 @@
+{
+  "inbox": "inbox",
+  "repos": [
+    "../.."
+  ],
+  "maxAgeHours": 6,
+  "minAgeMinutes": 0
+}

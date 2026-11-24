@@ -1,0 +1,14 @@
+{
+  "name": "diamond-day-local",
+  "description": "Local diamond-day plugins",
+  "owner": {
+    "name": "diamond-day contributors"
+  },
+  "plugins": [
+    {
+      "name": "diamond",
+      "source": "./plugins/diamond",
+      "description": "Review pending agent replies"
+    }
+  ]
+}
