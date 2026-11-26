@@ -1,134 +1,62 @@
-# PowerShell 5.1+ / PowerShell 7+. Uses explicit parsing so -Ray may be repeated.
+# PowerShell 5.1+ and 7+. Use a child runtime so its files can be removed after exit.
 $ErrorActionPreference = 'Stop'
-$SourceDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$rootValue = './rays'
-$agent = 'claude-code'
-$demo = $false
-$rays = [System.Collections.Generic.List[string]]::new()
-
-function Usage {
-  Write-Output 'Usage: .\install.ps1 [-Root PATH] [-Agent claude-code|codex|claude-desktop] [-Ray NAME ...] [-Demo]'
-  Write-Output 'Creates missing files only. -Demo adds the executable demo ray.'
+$source = $PSScriptRoot
+if ($args.Count -gt 0 -and $args[0] -eq '-Legacy') {
+  $legacyArgs = @($args | Select-Object -Skip 1)
+  & (Join-Path $source 'tools/install-legacy.ps1') @legacyArgs
+  exit $LASTEXITCODE
 }
-$index = 0
-while ($index -lt $args.Count) {
-  $arg = [string]$args[$index]
-  switch -Regex ($arg) {
-    '^(-Root|--root)$' {
-      if ($index + 1 -ge $args.Count) { throw "Missing value for $arg" }
-      $rootValue = [string]$args[$index + 1]; $index += 2; break
-    }
-    '^(-Agent|--agent)$' {
-      if ($index + 1 -ge $args.Count) { throw "Missing value for $arg" }
-      $agent = [string]$args[$index + 1]; $index += 2; break
-    }
-    '^(-Ray|--ray)$' {
-      if ($index + 1 -ge $args.Count) { throw "Missing value for $arg" }
-      $rays.Add([string]$args[$index + 1]); $index += 2; break
-    }
-    '^(-Demo|--demo)$' { $demo = $true; $index++; break }
-    '^(-Help|--help|-h)$' { Usage; exit 0 }
-    default { throw "Unknown option: $arg" }
+if ($args -contains '-Help' -or $args -contains '--help') {
+  Write-Output 'Usage: .\install.ps1 [-Root PATH] [-Port PORT] [-Ray NAME] [-Agent AGENT] | -Uninstall [-Purge] | -Legacy ...'; exit 0
+}
+$homeDir = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
+$managed = Join-Path $homeDir '.diamond-day'
+$bin = Join-Path $managed 'bin'
+$uninstall = ($args -contains '-Uninstall' -or $args -contains '--uninstall')
+$settingsFile = Join-Path $managed 'settings.json'
+if ($uninstall -and -not (Test-Path -LiteralPath $settingsFile)) {
+  if (Test-Path -LiteralPath (Join-Path $managed '.bootstrap-owned')) { Remove-Item -LiteralPath $managed -Recurse -Force }
+  Write-Output 'No installed board'; exit 0
+}
+if ((Test-Path -LiteralPath $managed) -and -not (Test-Path -LiteralPath $settingsFile) -and -not (Test-Path -LiteralPath (Join-Path $managed '.bootstrap-owned'))) { throw 'Existing unmanaged installation directory' }
+$runtimeArgs = @()
+if ($env:RAY_RUNTIME -eq 'node') {
+  $runtime = (Get-Command node -ErrorAction Stop).Source
+  $runtimeArgs = @('--experimental-strip-types','--disable-warning=ExperimentalWarning')
+} else {
+  $existing = Get-Command bun -ErrorAction SilentlyContinue
+  if ($existing) { $runtime = $existing.Source }
+  elseif (Test-Path -LiteralPath (Join-Path $managed 'bun/bin/bun.exe')) { $runtime = Join-Path $managed 'bun/bin/bun.exe' }
+  elseif (Test-Path -LiteralPath (Join-Path $homeDir '.bun/bin/bun.exe')) { $runtime = Join-Path $homeDir '.bun/bin/bun.exe' }
+  else {
+    if ($uninstall) { throw 'Bun missing; use RAY_RUNTIME=node if Node 22 is installed' }
+    if (-not (Test-Path -LiteralPath $managed)) { New-Item -ItemType Directory -Path $managed | Out-Null; New-Item -ItemType File -Path (Join-Path $managed '.bootstrap-owned') | Out-Null }
+    $archive = Join-Path ([IO.Path]::GetTempPath()) ('diamond-bun-' + [Guid]::NewGuid().ToString('N') + '.zip')
+    $staging = $archive + '.dir'
+    try {
+      $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'aarch64' } else { 'x64-baseline' }
+      $asset = "bun-windows-$arch"
+      Write-Output 'Installing Bun into the managed installation directory...'
+      Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/oven-sh/bun/releases/latest/download/$asset.zip" -OutFile $archive -TimeoutSec 180
+      Expand-Archive -LiteralPath $archive -DestinationPath $staging
+      $target = Join-Path $managed 'bun/bin'; New-Item -ItemType Directory -Force -Path $target | Out-Null
+      Copy-Item -LiteralPath (Join-Path $staging "$asset/bun.exe") -Destination $target
+      $runtime = Join-Path $target 'bun.exe'
+    } finally { Remove-Item -LiteralPath $archive,$staging -Recurse -Force -ErrorAction SilentlyContinue }
   }
 }
-switch ($agent) {
-  'claude-code' { $ruleFile = 'CLAUDE.md' }
-  'codex' { $ruleFile = 'AGENTS.md' }
-  'claude-desktop' { $ruleFile = 'PROJECT-INSTRUCTIONS.md' }
-  default { throw "Invalid agent: $agent" }
+& $runtime @runtimeArgs (Join-Path $source 'board/src/install.ts') @args
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+# User PATH, not Machine PATH. Preserve unrelated entries. Tests can isolate it.
+function Update-Path([string]$value, [bool]$remove) {
+  $items = @($value -split ';' | Where-Object { $_ -and $_.TrimEnd('\') -ine $bin.TrimEnd('\') })
+  if (-not $remove) { $items = @($bin) + $items }
+  return ($items -join ';')
 }
-if ($rays.Count -eq 0 -and -not $demo) { $rays.Add('work') }
-if ($demo) { $rays.Add('demo') }
-foreach ($ray in $rays) {
-  if ($ray -cnotmatch '^[a-z][a-z0-9-]*$') { throw "Invalid ray name: $ray" }
-  if (@('tools','templates','plans','docs','decisions','handoffs') -ccontains $ray) {
-    throw "Reserved ray name: $ray"
-  }
+if ($env:RAY_TEST_NO_USER_PATH -ne '1') {
+  $old = [Environment]::GetEnvironmentVariable('Path','User')
+  [Environment]::SetEnvironmentVariable('Path',(Update-Path $old $uninstall),'User')
 }
-if ([IO.Path]::IsPathRooted($rootValue)) { $RootDir = [IO.Path]::GetFullPath($rootValue) }
-else { $RootDir = [IO.Path]::GetFullPath((Join-Path (Get-Location).ProviderPath $rootValue)) }
-[IO.Directory]::CreateDirectory($RootDir) | Out-Null
-$script:created = 0
-$script:preserved = 0
-$utf8 = [System.Text.UTF8Encoding]::new($false)
-
-function Copy-Missing([string]$source, [string]$destination) {
-  [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
-  if ([IO.File]::Exists($destination) -or [IO.Directory]::Exists($destination)) {
-    $script:preserved++; return
-  }
-  [IO.File]::Copy($source, $destination)
-  $script:created++
-}
-function Render-Missing([string]$source, [string]$destination, [string]$ray) {
-  [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
-  if ([IO.File]::Exists($destination) -or [IO.Directory]::Exists($destination)) {
-    $script:preserved++; return
-  }
-  $content = [IO.File]::ReadAllText($source).Replace('{{RAY_NAME}}', $ray)
-  [IO.File]::WriteAllText($destination, $content, $utf8)
-  $script:created++
-}
-foreach ($file in (Get-ChildItem -LiteralPath (Join-Path $SourceDir 'templates') -File)) {
-  Copy-Missing $file.FullName (Join-Path $RootDir ("templates/" + $file.Name))
-}
-foreach ($name in @('check-goals.mjs','check-rays.mjs','checks.mjs','board.mjs','open-note.mjs')) {
-  Copy-Missing (Join-Path $SourceDir ("tools/" + $name)) (Join-Path $RootDir ("tools/" + $name))
-}
-Copy-Missing (Join-Path $SourceDir 'templates/root-README.md') (Join-Path $RootDir 'README.md')
-$raysFile = Join-Path $RootDir 'rays.txt'
-if (-not [IO.File]::Exists($raysFile)) {
-  Copy-Missing (Join-Path $SourceDir 'templates/rays.txt') $raysFile
-}
-function Add-ActiveRay([string]$ray) {
-  $content = [IO.File]::ReadAllText($raysFile)
-  $names = @($content -split '\r?\n' | ForEach-Object { $_.Trim() })
-  if ($names -ccontains $ray) { return }
-  if ($content.Length -gt 0 -and -not $content.EndsWith("`n")) {
-    [IO.File]::AppendAllText($raysFile, "`n", $utf8)
-  }
-  [IO.File]::AppendAllText($raysFile, ($ray + "`n"), $utf8)
-}
-function Make-Ray([string]$ray) {
-  $dir = Join-Path $RootDir $ray
-  foreach ($folder in @('plans','decisions','docs/goals','docs/changes','handoffs')) {
-    [IO.Directory]::CreateDirectory((Join-Path $dir $folder)) | Out-Null
-  }
-  if ($ray -eq 'coordinator') {
-    Copy-Missing (Join-Path $SourceDir 'templates/coordinator-README.md') (Join-Path $dir 'README.md')
-    Copy-Missing (Join-Path $SourceDir 'templates/coordinator-GOALS.md') (Join-Path $dir 'GOALS.md')
-    Copy-Missing (Join-Path $SourceDir 'templates/coordinator-inbox.md') (Join-Path $dir 'inbox.md')
-    Copy-Missing (Join-Path $SourceDir 'templates/resume-note.md') (Join-Path $dir 'plans/resume.md')
-  } elseif ($ray -eq 'demo' -and $demo) {
-    $sampleDir = Join-Path $SourceDir 'examples/demo-ray'
-    foreach ($file in (Get-ChildItem -LiteralPath $sampleDir -File -Recurse)) {
-      $relative = $file.FullName.Substring($sampleDir.Length + 1)
-      Copy-Missing $file.FullName (Join-Path $dir $relative)
-    }
-  } else {
-    Render-Missing (Join-Path $SourceDir 'templates/ray-README.md') (Join-Path $dir 'README.md') $ray
-    Render-Missing (Join-Path $SourceDir 'templates/GOALS.md') (Join-Path $dir 'GOALS.md') $ray
-    Copy-Missing (Join-Path $SourceDir 'templates/resume-note.md') (Join-Path $dir 'plans/resume.md')
-  }
-  Copy-Missing (Join-Path $SourceDir 'templates/AGENTS-RULES.md') (Join-Path $dir $ruleFile)
-  Add-ActiveRay $ray
-}
-Make-Ray 'coordinator'
-foreach ($ray in $rays) {
-  if ($ray -ne 'coordinator') { Make-Ray $ray }
-}
-$boardFile = Join-Path $RootDir 'board.html'
-if (-not [IO.File]::Exists($boardFile) -and (Get-Command node -ErrorAction SilentlyContinue)) {
-  & node (Join-Path $RootDir 'tools/board.mjs') $RootDir | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw 'Could not generate initial board' }
-  $script:created++
-}
-Write-Output "PASS install: agent=$agent root=$RootDir new=$script:created preserved=$script:preserved"
-Write-Output "Next: Set-Location '$RootDir/demo' (if -Demo), or Set-Location '$RootDir/<ray>'"
-Write-Output 'Run: node ../tools/checks.mjs run; node ../tools/checks.mjs status'
-switch ($agent) {
-  'claude-code' { Write-Output 'Start the ray agent with: claude' }
-  'codex' { Write-Output 'Start the ray agent with: codex' }
-  'claude-desktop' { Write-Output 'Create a Claude Desktop Project per ray; paste PROJECT-INSTRUCTIONS.md into its instructions.' }
-}
-Write-Output "Board: node tools/board.mjs serve $RootDir"
+$env:Path = Update-Path $env:Path $uninstall
+if ($uninstall -and (Test-Path -LiteralPath $managed)) { Remove-Item -LiteralPath $managed -Recurse -Force }
+exit 0

@@ -1,7 +1,7 @@
 # Codex CLI
 
 1. Install Codex CLI and Node.js 20+. See the [official Codex CLI guide](https://learn.chatgpt.com/docs/codex/cli).
-2. Run `bash install.sh --agent codex --root ./my-rays --ray website --demo`, or `.\install.ps1 -Agent codex -Root .\my-rays -Ray website -Demo`.
+2. Run `bash install.sh --legacy --agent codex --root ./my-rays --ray website --demo`, or `.\install.ps1 -Legacy -Agent codex -Root .\my-rays -Ray website -Demo`.
 3. Change directory to `my-rays/demo` and run `codex`. Each ray has its own `AGENTS.md` at its root. Codex reads that instruction file at startup, along with any applicable parent guidance.
 4. First prompt: "Read GOALS.md and plans/resume.md. Run all goal Checks, repair failures, then work each Next and record proof."
 5. In the same ray directory, use `codex resume --last` for its latest saved chat, `codex resume` for the picker, or `codex resume SESSION_ID` for a specific chat. A fresh `codex` session can restart solely from ray files.

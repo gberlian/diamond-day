@@ -20,6 +20,7 @@ jobs:
       - name: Node test suite
         run: node --test test/
       - name: Clean installation and disclosure scan (Bash)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           bash test/clean-install.sh
@@ -35,7 +36,7 @@ jobs:
       - name: "Installed demo: run and verify lights"
         shell: bash
         run: |
-          bash install.sh --root "./ci-demo-root" --demo
+          bash install.sh --legacy --root "./ci-demo-root" --demo
           node "./ci-demo-root/tools/checks.mjs" run
           node "./ci-demo-root/tools/checks.mjs" status
           node --input-type=module -e '

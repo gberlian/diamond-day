@@ -2,14 +2,59 @@
 
 A public, folder-based way to keep AI coding sessions working toward outcomes. Each **ray** is a folder with `GOALS.md`; each goal has a readable acceptance criterion and a **runnable check or explicit manual judgement**. The local board shows recorded proof, not inferred status.
 
-Requires Node.js 20+ and no npm dependencies. A shell is needed only for installation (Bash on macOS/Linux, PowerShell on Windows). An AI account is **not** needed to try the demo.
+The RPM board uses Bun (installed automatically if missing) and no package dependencies. A shell is needed for installation (Bash on Linux/macOS, PowerShell on Windows). The original static-site tutorial below uses Node.js 20+. An AI account is **not** needed to try either demo.
 
-## A working demo in under five minutes
+## The board
+
+From an extracted checkout, run one command on Linux (Bash, curl and unzip available):
+
+```sh
+bash install.sh
+```
+
+On Windows (PowerShell 5.1+ or 7+):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+The installer finds Bun or downloads it from the official distribution, creates `~/rays/demo`, and starts one local RPM board on `http://localhost:5195/board`. It adds `ray` to your user PATH. On Linux open a new login shell or run `source ~/.profile`; on Windows open a new terminal to pick up the user PATH. Open the printed URL; no Claude account, Git, npm or AutoHotkey is needed to see the board. The download needs internet access. The plain detached background process writes `~/.diamond-day/board.log`; `ray board` and `ray restore` restart it if needed. It does not register a system-wide daemon or a boot-time task.
+
+<!-- Screenshot placeholder: docs/img/rpm-board.png (capture the project list and a project page from a clean install). -->
+
+```sh
+ray new demo2 "A small demo"
+ray list
+ray board demo2
+bun ~/rays/tools/rpm-check.ts ~/rays/demo2
+```
+
+The generated GOALS.md includes Ultimate Vision, Ultimate Purpose, Roles, a current weekly review, and a measurable first Result with Purpose, three chunks, a must, leverage/durations, a runnable file-age Check and Now. The checker validates the RPM structure; it does not execute the declared outcome check. Update the review weekly. The new board retains the original dark projects list and three-column RPM plan, with read-only project pages, decision and insight notes, and document navigation. Edit the underlying Markdown; the board polls for changes. The private fleet/chat/ledger integrations and automated goal execution are deliberately not included. `ray open NAME` opens the project board and runs Claude Code in your terminal (install and sign in to the agent separately). `ray stop NAME` stops a session started by `ray open` and removes it from the active list, without stopping the shared board. `ray restore` restarts the board and reopens active rays in Windows Terminal or a graphical Linux terminal when available; otherwise it prints the commands to resume them. `RAY_TERMINAL_BIN` and `RAY_TERMINAL_ARGS` (a JSON array of arguments before the launched command) override terminal discovery; `RAY_RESTORE_MANUAL=1` requests instructions only. Browser and desktop placement are optional. No Claude trust settings are changed.
+
+Configuration: `RAYS_ROOT` (default `~/rays`), `RAY_BOARD_PORT` (default 5195), or installer `--root PATH` / `--port PORT` (`-Root` / `-Port` on Windows). These are saved at installation, not interpreted independently by the service. `--ray NAME` adds additional projects; `--agent` selects Claude Code, Codex or Claude Desktop. `RAY_AGENT_BIN` overrides the agent executable, `RAY_BROWSER_BIN` overrides the system browser opener, `RAY_NO_BROWSER=1` disables opening a window. On Windows `RAY_AUTOHOTKEY_BIN` and `RAY_WINDOW_SCRIPT` can opt into a local placement script; both must exist and neither is required. The script receives the ray name and URL. For offline development only, explicitly set `RAY_RUNTIME=node` with Node.js 22.13+; the default always uses Bun and reports a failed download rather than silently switching.
+
+Uninstall while no managed agent session is running:
+
+```sh
+bash install.sh --uninstall
+# To also delete the project tree created by this installer, explicitly opt in:
+bash install.sh --uninstall --purge
+```
+
+```powershell
+.\install.ps1 -Uninstall
+# To delete an installer-created project tree instead:
+.\install.ps1 -Uninstall -Purge
+```
+
+Uninstall removes the background board, managed runtime, CLI and managed PATH entry. By default it preserves all project files. **Purge permanently deletes the entire installer-created project root**, including work added after installation; it refuses a root that existed before the first install. Run purge instead of ordinary uninstall if you want a fully empty fresh HOME. An externally installed Bun is not removed. See [portability notes](board/PORTABILITY.md) for the removed machine-specific dependencies and [verification](board/VERIFICATION.md) for the test results.
+
+## Original static-site demo in under five minutes
 
 From a checkout or extracted repository archive, on macOS/Linux:
 
 ```sh
-bash install.sh --root "./my-rays" --demo
+bash install.sh --legacy --root "./my-rays" --demo
 cd my-rays
 node tools/checks.mjs run
 node tools/checks.mjs status
@@ -19,7 +64,7 @@ node tools/board.mjs serve .
 On Windows PowerShell:
 
 ```powershell
-.\install.ps1 -Root '.\my-rays' -Demo
+.\install.ps1 -Legacy -Root '.\my-rays' -Demo
 Set-Location '.\my-rays'
 node tools/checks.mjs run
 node tools/checks.mjs status
@@ -83,7 +128,7 @@ The full grammar, safety limits, stale rule and cooldown are in [guides/checks.m
 
 ## Use this in a real ray
 
-Install as many rays as needed: `--ray website --ray notes` (or `-Ray` on PowerShell). Each install creates `rays.txt`, `templates/`, `tools/`, a coordinator ray and a per-agent rules file. All installers preserve existing files; they never overwrite an existing goal. `--agent codex` or `--agent claude-desktop` selects the appropriate instruction file. For example, from `my-rays/website`, an agent can read `GOALS.md` and `plans/resume.md`, invoke `node ../tools/checks.mjs run website`, and address failures. Replace the starter `check: manual` only when a truthful verifier exists.
+For the original Node workflow, use `--legacy --ray website --ray notes` (or `-Legacy -Ray` on PowerShell). Each legacy install creates `rays.txt`, `templates/`, `tools/`, a coordinator ray and a per-agent rules file. All installers preserve existing files; they never overwrite an existing goal. `--agent codex` or `--agent claude-desktop` selects the appropriate instruction file. For example, from `my-rays/website`, an agent can read `GOALS.md` and `plans/resume.md`, invoke `node ../tools/checks.mjs run website`, and address failures. Replace the starter `check: manual` only when a truthful verifier exists.
 
 `node tools/board.mjs serve .` is the live board, listening only on the local machine. It serves `/board` and `/api/board` and accepts same-origin POSTs to run declared checks; it is **not a remote execution service**. `node tools/board.mjs .` still creates a read-only offline snapshot `board.html`, for the old workflow and tests. The board schedules declared checks automatically no more than once per ten minutes, and the explicit button respects the same limit.
 

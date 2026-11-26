@@ -1,83 +1,52 @@
 #!/usr/bin/env bash
 set -euo pipefail
-trap 'echo "FAIL ${BASH_SOURCE[0]##*/} line $LINENO: $BASH_COMMAND" >&2' ERR
 REPO=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
-
-command -v node >/dev/null 2>&1 || { echo "FAIL: Node.js 20+ is required" >&2; exit 1; }
-node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)' ||
-  { echo "FAIL: Node.js 20+ is required" >&2; exit 1; }
-node "$REPO/tools/check-goals.mjs" "$REPO/examples/demo-ray/GOALS.md"
-echo "PASS fixture: goal file is valid"
-node "$REPO/test/tools-portability.mjs"
-
-for agent in claude-code codex claude-desktop; do
-  root="$TMP/$agent root"
-  bash "$REPO/install.sh" --root "$root" --agent "$agent" --ray website --ray notes --demo >/dev/null
-  test -f "$root/coordinator/GOALS.md"
-  test -f "$root/website/GOALS.md"
-  test -f "$root/notes/GOALS.md"
-  test -f "$root/demo/GOALS.md"
-  case "$agent" in
-    claude-code) expected=CLAUDE.md ;;
-    codex) expected=AGENTS.md ;;
-    claude-desktop) expected=PROJECT-INSTRUCTIONS.md ;;
-  esac
-  for ray in coordinator website notes demo; do
-    test -f "$root/$ray/$expected"
-    node "$root/tools/check-goals.mjs" "$root/$ray/GOALS.md" >/dev/null
-  done
-  node "$root/tools/check-rays.mjs" "$root" >/dev/null
-  test -f "$root/board.html"
-  echo "PASS install: $agent rules, rays, goals, and board"
+TMP=$(mktemp -d); export HOME="$TMP/home with spaces"; mkdir -p "$HOME"
+unset RAYS_ROOT RAY_BOARD_PORT BUN_INSTALL
+export RAY_NO_BROWSER=1 RAY_RESTORE_MANUAL=1
+# A free port avoids interfering with a developer's running board.
+export RAY_BOARD_PORT=$(node -e 'const s=require("net").createServer();s.listen(0,"localhost",()=>{console.log(s.address().port);s.close()})')
+cleanup(){ bash "$REPO/install.sh" --uninstall --purge >/dev/null 2>&1 || true; rm -rf "$TMP"; }
+trap cleanup EXIT
+start=$SECONDS
+bash "$REPO/install.sh"
+# The installed login shell setup must make ray available without calling its absolute path.
+source "$HOME/.profile"
+command -v ray
+ray list | grep -Fx demo
+ray new demo2 'A small demo'
+ray board demo2 | grep -F "/board/p/demo2"
+ray restore | grep -Fx 'Resume in a terminal: ray open demo2'
+if [[ ${RAY_RUNTIME:-bun} == node ]]; then runtime=(node --experimental-strip-types --disable-warning=ExperimentalWarning)
+elif command -v bun >/dev/null; then runtime=(bun)
+else runtime=("$HOME/.diamond-day/bun/bin/bun"); fi
+for n in demo demo2; do
+  echo "RPM check: $n"
+  "${runtime[@]}" "$REPO/tools/rpm-check.ts" "$HOME/rays/$n"
 done
-
-root="$TMP/claude-code root"
-printf '%s\n' 'DO NOT OVERWRITE' > "$root/website/GOALS.md"
-bash "$REPO/install.sh" --root "$root" --agent claude-code --ray website --ray extra --demo >/dev/null
-test "$(cat "$root/website/GOALS.md")" = 'DO NOT OVERWRITE'
-grep -Fxq 'extra' "$root/rays.txt"
-test "$(grep -Fxc 'demo' "$root/rays.txt")" -eq 1
-echo "PASS safety: existing content preserved and new ray appended"
-
-demo="$root/demo"
-(
-  cd "$demo"
-  node checks/build.mjs
-  if node checks/links.mjs >/dev/null 2>&1; then
-    echo "FAIL: deliberately broken demo link went undetected" >&2; exit 1
-  fi
-  echo "PASS demo: initial link check FAILS as designed"
-  sed -i.bak 's/href="missing.html"/href="about.html#purpose"/' site/index.html
-  rm -f site/index.html.bak
-  node checks/build.mjs
-  node checks/links.mjs
-)
-node "$root/tools/board.mjs" "$root" >/dev/null
-grep -Fq 'demo' "$root/board.html"
-echo "PASS demo: offline build, links, and board"
-
-# A broken local link must be detected.
-printf '%s\n' '<!doctype html><html><a href="absent.html">Missing</a></html>' > "$demo/dist/index.html"
-if (cd "$demo" && node checks/links.mjs >/dev/null 2>&1); then
-  echo "FAIL: broken link went undetected" >&2
-  exit 1
-fi
-echo "PASS negative: broken local link fails"
-
-# A goal missing Check must return a nonzero exit code.
-cat > "$TMP/missing-check.md" <<'BAD'
-# missing
-
-## 1. Untestable outcome
-- **Want:** A site exists.
-- **Now:** Not measured.
-- **Next:** Build it.
-BAD
-if node "$REPO/tools/check-goals.mjs" "$TMP/missing-check.md" >/dev/null 2>&1; then
-  echo "FAIL: missing Check accepted" >&2
-  exit 1
-fi
-echo "PASS negative: missing Check fails"
-echo "PASS clean-install.sh"
+base="http://localhost:$RAY_BOARD_PORT"
+node --input-type=module - "$base" <<'JS'
+import assert from 'node:assert/strict';
+import { Script } from 'node:vm';
+const base=process.argv[2];
+const r=await fetch(base+'/board');assert.equal(r.status,200);const html=await r.text();
+for(const n of ['demo','demo2']) assert.ok(html.includes('/board/p/'+n+'"'));
+const j=await (await fetch(base+'/api/board/projects')).json();assert.deepEqual(j.projects.map(x=>x.ray).sort(),['demo','demo2']);
+for(const n of ['demo','demo2']) {const page=await fetch(base+'/board/p/'+n);assert.equal(page.status,200);for(const script of (await page.text()).matchAll(/<script>([\s\S]*?)<\/script>/g))new Script(script[1]);const p=await (await fetch(base+'/api/board/project/'+n)).json();assert.equal(p.results[0].cards.length,3);assert.equal(p.results[0].cards[0].must,true);assert.match(p.results[0].check,/resume note/i);const doc=await fetch(base+'/api/board/project/'+n+'/doc?path='+n+'/plans/resume.md');assert.equal(doc.status,200);assert.match(await doc.text(),/Project created/);}
+assert.equal((await fetch(base+'/board/p/missing')).status,404);
+for(const script of html.matchAll(/<script>([\s\S]*?)<\/script>/g))new Script(script[1]);
+console.log('PASS board: HTTP 200; projects demo, demo2; both RPM project pages and card APIs answer; scripts parse; resume links resolve');
+JS
+# A duplicate new command must not overwrite existing content.
+if ray new demo2 'overwrite'; then echo 'FAIL duplicate creation accepted' >&2; exit 1; fi
+grep -Fq 'A small demo' "$HOME/rays/demo2/GOALS.md"
+bash "$REPO/install.sh" --uninstall --purge
+node --input-type=module - "$base" <<'JS'
+import assert from 'node:assert/strict';
+await assert.rejects(fetch(process.argv[2]+'/board',{signal:AbortSignal.timeout(2000)}));
+console.log('PASS uninstall: board no longer answers');
+JS
+[[ -z $(find "$HOME" -mindepth 1 -print -quit) ]] || { find "$HOME" -mindepth 1 -print; exit 1; }
+! command -v ray >/dev/null
+((SECONDS-start<900))
+echo "PASS clean-install.sh: empty HOME after uninstall; ${SECONDS-start}s elapsed"

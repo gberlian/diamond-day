@@ -1,83 +1,52 @@
 $ErrorActionPreference = 'Stop'
-$Repo = Split-Path -Parent $PSScriptRoot
-$Tmp = Join-Path ([IO.Path]::GetTempPath()) ("diamond-day-test-" + [Guid]::NewGuid().ToString('N'))
-[IO.Directory]::CreateDirectory($Tmp) | Out-Null
-
-function Run-Node([string[]]$Values) {
-  & node @Values
-  if ($LASTEXITCODE -ne 0) { throw "Node returned $LASTEXITCODE" }
-}
-function Expect-Node-Failure([string[]]$Values) {
-  $oldPreference = $ErrorActionPreference
-  $ErrorActionPreference = 'Continue'
-  try {
-    & node @Values *> $null
-    $code = $LASTEXITCODE
-  } finally { $ErrorActionPreference = $oldPreference }
-  if ($code -eq 0) { throw 'Expected a failing Node check' }
+$repo = Split-Path -Parent $PSScriptRoot
+$tmp = Join-Path ([IO.Path]::GetTempPath()) ('diamond-day-' + [Guid]::NewGuid().ToString('N'))
+$oldHome = $env:HOME; $oldPath = $env:Path; $oldRoot = $env:RAYS_ROOT; $oldPort = $env:RAY_BOARD_PORT; $oldTest = $env:RAY_TEST_NO_USER_PATH; $oldUserPath = [Environment]::GetEnvironmentVariable('Path','User')
+$env:HOME = Join-Path $tmp 'home with spaces'; New-Item -ItemType Directory -Force -Path $env:HOME | Out-Null
+$env:RAYS_ROOT = $null; $env:RAY_TEST_NO_USER_PATH = $null
+$listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0); $listener.Start(); $env:RAY_BOARD_PORT = [string]$listener.LocalEndpoint.Port; $listener.Stop()
+$exe = (Get-Process -Id $PID).Path
+$installer = Join-Path $repo 'install.ps1'
+$watch = [Diagnostics.Stopwatch]::StartNew()
+function Install-Run([string[]]$flags) {
+  & $exe -NoProfile -ExecutionPolicy Bypass -File $installer @flags
+  if ($LASTEXITCODE -ne 0) { throw "Installer exit $LASTEXITCODE" }
 }
 try {
-  if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'Node.js 20+ is required' }
-  if ([int]((& node -p 'process.versions.node.split(".")[0]').Trim()) -lt 20) {
-    throw 'Node.js 20+ is required'
+  Install-Run @()
+  $bin = Join-Path $env:HOME '.diamond-day/bin'; if (([Environment]::GetEnvironmentVariable('Path','User') -split ';') -notcontains $bin) { throw 'User PATH entry missing' }; $env:Path = "$bin;$oldPath"
+  $ray = (Get-Command ray.cmd -ErrorAction Stop).Source
+  if (@(& $ray list) -notcontains 'demo' -or $LASTEXITCODE -ne 0) { throw 'Missing demo' }
+  & $ray new demo2 'A small demo'; if ($LASTEXITCODE -ne 0) { throw 'ray new failed' }
+  $settings = Get-Content -Raw (Join-Path $env:HOME '.diamond-day/settings.json') | ConvertFrom-Json
+  foreach ($name in @('demo','demo2')) {
+    Write-Output "RPM check: $name"
+    $rtargs = @($settings.runtimeArgs)
+    & $settings.runtime @rtargs (Join-Path $repo 'tools/rpm-check.ts') (Join-Path $env:HOME "rays/$name")
+    if ($LASTEXITCODE -ne 0) { throw "RPM check failed: $name" }
   }
-  Run-Node @((Join-Path $Repo 'tools/check-goals.mjs'), (Join-Path $Repo 'examples/demo-ray/GOALS.md'))
-  Write-Output 'PASS fixture: goal file is valid'
-  Run-Node @((Join-Path $Repo 'test/tools-portability.mjs'))
-
-  foreach ($agent in @('claude-code','codex','claude-desktop')) {
-    $root = Join-Path $Tmp ($agent + ' root')
-    & (Join-Path $Repo 'install.ps1') -Root $root -Agent $agent -Ray website -Ray notes -Demo | Out-Null
-    switch ($agent) {
-      'claude-code' { $rule = 'CLAUDE.md' }
-      'codex' { $rule = 'AGENTS.md' }
-      'claude-desktop' { $rule = 'PROJECT-INSTRUCTIONS.md' }
-    }
-    foreach ($ray in @('coordinator','website','notes','demo')) {
-      if (-not (Test-Path -LiteralPath (Join-Path $root "$ray/$rule"))) {
-        throw "Missing $ray rule for $agent"
-      }
-      Run-Node @((Join-Path $root 'tools/check-goals.mjs'), (Join-Path $root "$ray/GOALS.md"))
-    }
-    Run-Node @((Join-Path $root 'tools/check-rays.mjs'), $root)
-    if (-not (Test-Path -LiteralPath (Join-Path $root 'board.html'))) { throw 'Missing board' }
-    Write-Output "PASS install: $agent rules, rays, goals, and board"
+  $base = "http://localhost:$env:RAY_BOARD_PORT"
+  $page = Invoke-WebRequest -UseBasicParsing "$base/board"
+  if ($page.StatusCode -ne 200 -or $page.Content -notmatch '/board/p/demo"' -or $page.Content -notmatch '/board/p/demo2"') { throw 'Board listing missing' }
+  $data = Invoke-RestMethod "$base/api/board/projects"
+  if ((($data.projects.ray | Sort-Object) -join ',') -ne 'demo,demo2') { throw 'Unexpected projects' }
+  foreach ($name in @('demo','demo2')) {
+    if ((Invoke-WebRequest -UseBasicParsing "$base/board/p/$name").StatusCode -ne 200) { throw 'Project page failed' }
+    $p = Invoke-RestMethod "$base/api/board/project/$name"
+    if ($p.results[0].cards.Count -ne 3 -or -not $p.results[0].cards[0].must) { throw 'Cards missing' }
   }
-  $root = Join-Path $Tmp 'claude-code root'
-  [IO.File]::WriteAllText((Join-Path $root 'website/GOALS.md'), "DO NOT OVERWRITE`n")
-  & (Join-Path $Repo 'install.ps1') -Root $root -Agent claude-code -Ray website -Ray extra -Demo | Out-Null
-  if ([IO.File]::ReadAllText((Join-Path $root 'website/GOALS.md')).Trim() -ne 'DO NOT OVERWRITE') {
-    throw 'Installer overwrote an existing file'
-  }
-  $rayNames = @([IO.File]::ReadAllLines((Join-Path $root 'rays.txt')))
-  if ($rayNames -cnotcontains 'extra' -or @($rayNames | Where-Object { $_ -eq 'demo' }).Count -ne 1) {
-    throw 'rays.txt was not updated safely'
-  }
-  Write-Output 'PASS safety: existing content preserved and new ray appended'
-
-  $demo = Join-Path $root 'demo'
-  Push-Location $demo
-  try {
-    Run-Node @('checks/build.mjs')
-    Expect-Node-Failure @('checks/links.mjs')
-    Write-Output 'PASS demo: initial link check FAILS as designed'
-    $source = Join-Path $demo 'site/index.html'
-    $fixed = [IO.File]::ReadAllText($source).Replace('href="missing.html"', 'href="about.html#purpose"')
-    [IO.File]::WriteAllText($source, $fixed)
-    Run-Node @('checks/build.mjs')
-    Run-Node @('checks/links.mjs')
-    [IO.File]::WriteAllText((Join-Path $demo 'dist/index.html'), '<!doctype html><html><a href="absent.html">Missing</a></html>')
-    Expect-Node-Failure @('checks/links.mjs')
-  } finally { Pop-Location }
-  Run-Node @((Join-Path $root 'tools/board.mjs'), $root)
-  Write-Output 'PASS demo: offline build, links, and board'
-  Write-Output 'PASS negative: broken local link fails'
-
-  $bad = Join-Path $Tmp 'missing-check.md'
-  [IO.File]::WriteAllText($bad, "# missing`n`n## 1. Broken`n- **Want:** Example`n- **Now:** New`n- **Next:** Fix`n")
-  Expect-Node-Failure @((Join-Path $Repo 'tools/check-goals.mjs'), $bad)
-  Write-Output 'PASS negative: missing Check fails'
-  Write-Output 'PASS clean-install.ps1'
+  Write-Output 'PASS board: HTTP 200; projects demo, demo2; both RPM project pages and card APIs answer'
+  Install-Run @('-Uninstall','-Purge')
+  $answering = $false; try { $null = Invoke-WebRequest -UseBasicParsing "$base/board" -TimeoutSec 2; $answering = $true } catch {}
+  if ($answering) { throw 'Board still answering' }
+  if (@(Get-ChildItem -LiteralPath $env:HOME -Force).Count -ne 0) { throw 'HOME not empty after uninstall' }
+  if (Test-Path -LiteralPath $ray) { throw 'ray wrapper remains' }
+  if (([Environment]::GetEnvironmentVariable('Path','User') -split ';') -contains $bin) { throw 'User PATH entry remains' }
+  if ($watch.Elapsed.TotalSeconds -ge 900) { throw 'Install test exceeded 15 minutes' }
+  Write-Output "PASS clean-install.ps1: board stopped; empty HOME after uninstall; $($watch.Elapsed.TotalSeconds)s elapsed"
 } finally {
-  Remove-Item -LiteralPath $Tmp -Recurse -Force -ErrorAction SilentlyContinue
+  if (Test-Path -LiteralPath (Join-Path $env:HOME '.diamond-day')) { & $exe -NoProfile -ExecutionPolicy Bypass -File $installer -Uninstall -Purge }
+  [Environment]::SetEnvironmentVariable('Path',$oldUserPath,'User')
+  $env:HOME=$oldHome; $env:Path=$oldPath; $env:RAYS_ROOT=$oldRoot; $env:RAY_BOARD_PORT=$oldPort; $env:RAY_TEST_NO_USER_PATH=$oldTest
+  Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
 }

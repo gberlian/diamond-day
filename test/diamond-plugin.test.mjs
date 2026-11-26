@@ -88,7 +88,7 @@ test('manifest, marketplace and hook fields match the documented Claude Code for
   }
   for (const cmd of ['diamond-review', 'diamond-merge', 'diamond-skip']) {
     const body = fs.readFileSync(path.join(plugin, 'commands', `${cmd}.md`), 'utf8');
-    assert.match(body, /^---\ndescription: .+\n/);
+    assert.match(body, /^---\r?\ndescription: .+\r?\n/);
     assert.match(body, /diamond-hook\.mjs/);
   }
   assert.equal(fs.readFileSync(hook, 'utf8'), fs.readFileSync(bundledHook, 'utf8'));

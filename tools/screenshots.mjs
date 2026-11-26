@@ -244,8 +244,8 @@ async function main() {
   try {
     const command = process.platform === 'win32' ? 'powershell.exe' : 'bash';
     const args = process.platform === 'win32' ?
-      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(repo, 'install.ps1'), '-Root', root, '-Demo'] :
-      [path.join(repo, 'install.sh'), '--root', root, '--demo'];
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(repo, 'install.ps1'), '-Legacy', '-Root', root, '-Demo'] :
+      [path.join(repo, 'install.sh'), '--legacy', '--root', root, '--demo'];
     const installed = spawnSync(command, args, { encoding: 'utf8', windowsHide: true, timeout: 30_000 });
     if (installed.status !== 0)
       throw Error(`Demo install failed: ${installed.stderr || installed.stdout || installed.error}`);

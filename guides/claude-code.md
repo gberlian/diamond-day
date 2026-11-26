@@ -1,7 +1,7 @@
 # Claude Code
 
 1. Install Claude Code from the [official setup guide](https://code.claude.com/docs/en/quickstart) and Node.js 20+.
-2. Run `bash install.sh --agent claude-code --root ./my-rays --ray website --demo`, or the equivalent `install.ps1`.
+2. Run `bash install.sh --legacy --agent claude-code --root ./my-rays --ray website --demo`, or the equivalent `install.ps1`.
 3. In a terminal, change directory to `my-rays/demo` and run `claude`. The installer puts `CLAUDE.md` **inside each ray**, where Claude Code reads project instructions on launch. Do not place the ray rule only at the root of an unrelated checkout.
 4. First prompt: "Read GOALS.md and plans/resume.md, run every Check, fix failures, then work every Next. Update proof and open a change note."
 5. After a break, run `claude -c` **from the same ray** to continue its most recent chat, or run `claude` for a fresh session that reconstructs state from files. To choose a saved session use `claude -r SESSION_ID`. Refresh `plans/resume.md` before a deliberate restart.
