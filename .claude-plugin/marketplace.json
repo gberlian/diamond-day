@@ -1,8 +1,8 @@
 {
-  "name": "diamond-day-local",
-  "description": "Local diamond-day plugins",
+  "name": "arpe-local",
+  "description": "Local arpe plugins",
   "owner": {
-    "name": "diamond-day contributors"
+    "name": "arpe contributors"
   },
   "plugins": [
     {

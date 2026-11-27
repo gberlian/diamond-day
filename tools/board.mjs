@@ -48,8 +48,8 @@ function render(data, live = false) {
 <footer><button type="button" data-ray="${esc(ray.name)}" data-goal="${esc(goal.id)}" ${!live || !goal.runnable ? 'disabled' : ''} aria-label="Run check for ${esc(ray.name)} goal ${esc(goal.id)}">Run</button></footer></article>`;
   }).join('\n')}</div></section>`).join('\n');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>diamond-day | Ray board</title><style>${css}</style></head><body>
-<header><h1>diamond-day</h1><strong>Ray board</strong><span id="notice" aria-live="polite"></span></header>
+<title>arpe | Ray board</title><style>${css}</style></head><body>
+<header><h1>arpe</h1><strong>Ray board</strong><span id="notice" aria-live="polite"></span></header>
 <main id="rays">${panels}</main>
 ${live ? `<script>
 document.addEventListener('click',async event=>{

@@ -277,7 +277,7 @@ export async function executeCheck(spec, folder, now = Date.now()) {
 export class CheckService {
   constructor(root, { clock = Date.now } = {}) {
     this.root = path.resolve(root);
-    this.dataDir = path.join(this.root, '.diamond-day');
+    this.dataDir = path.join(this.root, '.arpe');
     this.historyPath = path.join(this.dataDir, 'checks-history.json');
     this.clock = clock;
     this.pending = new Map();

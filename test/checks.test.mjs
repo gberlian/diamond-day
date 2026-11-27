@@ -11,7 +11,7 @@ import { createBoardServer } from '../tools/board.mjs';
 const LOOPBACK = [127, 0, 0, 1].join('.');
 
 function fixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'diamond-day-tests-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'arpe-tests-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }));
   fs.mkdirSync(path.join(root, 'demo'));
   fs.writeFileSync(path.join(root, 'rays.txt'), 'demo\n');
@@ -196,7 +196,7 @@ test('no commands without Check declaration; symlinked rays and GOALS denied', a
   await assert.rejects(service.run('demo', '1'), error => error.status === 404);
   assert.equal(fs.existsSync(marker), false);
   assert.throws(() => readRayGoals(f.root, '../outside'), error => error.status === 400);
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'diamond-day-external-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'arpe-external-'));
   t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
   fs.writeFileSync(path.join(outside, 'GOALS.md'), '# bad');
   try {

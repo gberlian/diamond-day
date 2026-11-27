@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tools = path.join(repo, 'tools');
-const tmp = mkdtempSync(path.join(tmpdir(), 'diamond-day paths with spaces '));
+const tmp = mkdtempSync(path.join(tmpdir(), 'arpe paths with spaces '));
 
 function run(tool, ...args) {
   const result = spawnSync(process.execPath, [path.join(tools, tool), ...args], {

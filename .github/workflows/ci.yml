@@ -42,7 +42,7 @@ jobs:
           node --input-type=module -e '
             import fs from "node:fs";
             import path from "node:path";
-            const h = JSON.parse(fs.readFileSync(path.join("ci-demo-root", ".diamond-day", "checks-history.json")));
+            const h = JSON.parse(fs.readFileSync(path.join("ci-demo-root", ".arpe", "checks-history.json")));
             if (h.goals["demo/1"]?.at(-1)?.status !== "pass" || h.goals["demo/2"]?.at(-1)?.status !== "fail") process.exit(1);
             console.log("PASS demo: real PASS and FAIL recorded; manual goal declared");
           '

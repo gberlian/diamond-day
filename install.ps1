@@ -10,7 +10,7 @@ if ($args -contains '-Help' -or $args -contains '--help') {
   Write-Output 'Usage: .\install.ps1 [-Root PATH] [-Port PORT] [-Ray NAME] [-Agent AGENT] | -Uninstall [-Purge] | -Legacy ...'; exit 0
 }
 $homeDir = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
-$managed = Join-Path $homeDir '.diamond-day'
+$managed = Join-Path $homeDir '.arpe'
 $bin = Join-Path $managed 'bin'
 $uninstall = ($args -contains '-Uninstall' -or $args -contains '--uninstall')
 $settingsFile = Join-Path $managed 'settings.json'

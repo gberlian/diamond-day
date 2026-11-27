@@ -12,7 +12,7 @@ const flags=['--experimental-strip-types','--disable-warning=ExperimentalWarning
 const free=host=>new Promise((resolve,reject)=>{const s=createServer();s.once('error',reject);s.listen(0,host,()=>{const n=s.address().port;s.close(()=>resolve(n));});});
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function fixture(t){
-  const home=mkdtempSync(path.join(tmpdir(),'sharing test ')),root=path.join(home,'rays'),dir=path.join(home,'.diamond-day');mkdirSync(dir);mkdirSync(root);
+  const home=mkdtempSync(path.join(tmpdir(),'sharing test ')),root=path.join(home,'rays'),dir=path.join(home,'.arpe');mkdirSync(dir);mkdirSync(root);
   const port=await free('localhost'),sharePort=await free(loop),token='owner-test';const env={...process.env,HOME:home,USERPROFILE:home,RAY_NO_BROWSER:'1'};
   writeFileSync(path.join(dir,'settings.json'),JSON.stringify({root,port,sharePort,agent:'claude-code',runtime:process.execPath,runtimeArgs:flags,token,ownsRoot:true}));
   // fileURLToPath works for Windows drive letters and spaces.

@@ -14,7 +14,7 @@ const rpm=path.join(repo,'tools','rpm-check.ts');
 function run(entry,args=[],opts={}){return spawnSync(process.execPath,[...(entry.endsWith('.ts')?strip:[]),entry,...args],{encoding:'utf8',timeout:100000,...opts});}
 function passed(r){assert.equal(r.status,0,`exit ${r.status}\n${r.stdout}\n${r.stderr}\n${r.error||''}`);return r.stdout;}
 function temp(t){const dir=mkdtempSync(path.join(tmpdir(),'arpe example test '));t.after(()=>rmSync(dir,{recursive:true,force:true}));return dir;}
-function config(home,port=5195){const root=path.join(home,'rays');mkdirSync(path.join(home,'.diamond-day'),{recursive:true});writeFileSync(path.join(home,'.diamond-day','settings.json'),JSON.stringify({root,port,agent:'claude-code',runtime:process.execPath,runtimeArgs:strip,token:'test-only',ownsRoot:true}));return {root,env:{...process.env,HOME:home,USERPROFILE:home,RAY_NO_BROWSER:'1'}};}
+function config(home,port=5195){const root=path.join(home,'rays');mkdirSync(path.join(home,'.arpe'),{recursive:true});writeFileSync(path.join(home,'.arpe','settings.json'),JSON.stringify({root,port,agent:'claude-code',runtime:process.execPath,runtimeArgs:strip,token:'test-only',ownsRoot:true}));return {root,env:{...process.env,HOME:home,USERPROFILE:home,RAY_NO_BROWSER:'1'}};}
 function tree(dir){return readdirSync(dir,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name)).flatMap(e=>e.isDirectory()?tree(path.join(dir,e.name)).map(([n,b])=>[`${e.name}/${n}`,b]):[[e.name,readFileSync(path.join(dir,e.name))]]);}
 
 test('arpe-demo example: RPM 17/17 and historical starter fails five hard rules',()=>{

@@ -49,6 +49,6 @@ node tools/checks.mjs run demo 2 --force
 
 PASS/FAIL results become STALE after 24 hours; timestamps and output remain visible. A valid manual check without a report shows MANUAL. An automated check without a result (or a missing/malformed declaration) shows NEVER. Manual reports require a nonempty note and cannot turn an undeclared goal green.
 
-History lives in the installed root under `.diamond-day/checks-history.json`, with atomic lock-protected changes, most recent 50 records per goal, and persisted check start times. Keep `.diamond-day/` private and out of git. The board snapshot `node tools/board.mjs .` still writes an offline `board.html` for compatibility; use `serve` to run checks.
+History lives in the installed root under `.arpe/checks-history.json`, with atomic lock-protected changes, most recent 50 records per goal, and persisted check start times. Keep `.arpe/` private and out of git. The board snapshot `node tools/board.mjs .` still writes an offline `board.html` for compatibility; use `serve` to run checks.
 
 **Trust boundary:** Declared run commands and HTTP targets are trusted local execution, not a sandbox. Do not enable unreviewed GOALS.md content, do not place secrets in checks or reports, and do not expose the board to a network. Review the declaration like code.

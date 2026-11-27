@@ -29,7 +29,7 @@ The example ships the original single-file countdown page from 26 November 2026.
 
 ## 2. Install
 
-Get the repository at [github.com/gberlian/diamond-day](https://github.com/gberlian/diamond-day) (Code → Download ZIP), or use the checkout that contains this guide. Extract it and open a terminal in the extracted repository folder. Keep that folder until you have copied the example.
+Get the repository at [github.com/gberlian/arpe](https://github.com/gberlian/arpe) (Code → Download ZIP), or use the checkout that contains this guide. Extract it and open a terminal in the extracted repository folder. Keep that folder until you have copied the example.
 
 **macOS and Linux** (Bash, curl and unzip available):
 
@@ -254,7 +254,7 @@ If a card is done without proof, open it and request the actual output or file. 
 A shared company is one ray. The guest sees the Result, Purpose, Plan, and only the artifacts and decisions you publish. The owner board, other projects, chat, stats, and agent controls are not exposed.
 
 1. Install the kit using the command above. Create a project with `ray new demo2 "A small demo"` or use the installed `demo`. Review its GOALS.md, including every plan card and proof label. Do not share credentials or sensitive text.
-2. Start the separate loopback listener: `ray share start 5196`. Choose a free port different from the owner board. This saves `sharePort` in `~/.diamond-day/settings.json` and restarts the board. It starts again automatically when `ray board` starts the board. For a local test, run `ray share demo Guest viewer 1` and open the printed invitation in a browser on this computer.
+2. Start the separate loopback listener: `ray share start 5196`. Choose a free port different from the owner board. This saves `sharePort` in `~/.arpe/settings.json` and restarts the board. It starts again automatically when `ray board` starts the board. For a local test, run `ray share demo Guest viewer 1` and open the printed invitation in a browser on this computer.
 3. For another person, install Tailscale, enable HTTPS for your tailnet and restrict access to that person. Use Tailscale **Serve**, not Funnel. In PowerShell, run:
 
    ```powershell

@@ -5,7 +5,7 @@ if [[ ${1:-} == --legacy ]]; then shift; exec bash "$SOURCE_DIR/tools/install-le
 if [[ ${1:-} == --help || ${1:-} == -h ]]; then
   echo 'Usage: bash install.sh [--root PATH] [--port PORT] [--ray NAME] [--agent claude-code|codex|claude-desktop] | --uninstall [--purge] | --legacy ...'; exit 0
 fi
-managed="$HOME/.diamond-day"
+managed="$HOME/.arpe"
 if [[ ${1:-} == --uninstall && ! -f "$managed/settings.json" ]]; then
   # A failed bootstrap may have created just the managed Bun directory.
   if [[ -f "$managed/.bootstrap-owned" ]]; then rm -rf -- "$managed"; fi

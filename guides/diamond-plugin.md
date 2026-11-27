@@ -14,7 +14,7 @@ delivers plain-text context to Claude. You decide what to merge or skip:
 Requirements: Claude Code with plugin hooks, Node.js 20+, and Git on `PATH`.
 No npm dependencies or network access are needed for scanning.
 
-From the diamond-day checkout, load the local plugin for one session with
+From the arpe checkout, load the local plugin for one session with
 **one command**:
 
 ```sh
@@ -23,11 +23,11 @@ claude --plugin-dir ./plugins/diamond
 
 For persistent, marketplace-based installation, this repository also has
 `.claude-plugin/marketplace.json` with source `./plugins/diamond`. From the
-diamond-day checkout, run:
+arpe checkout, run:
 
 ```sh
 claude plugin marketplace add .
-claude plugin install diamond@diamond-day-local
+claude plugin install diamond@arpe-local
 ```
 
 A single shell line can combine those commands with `&&`. Claude Code will

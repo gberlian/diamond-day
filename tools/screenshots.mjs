@@ -236,7 +236,7 @@ async function capture(cdp, url, filename) {
 
 async function main() {
   const browserPath = findBrowser(); // Fail before changing docs if no browser installed.
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'diamond-day-screenshots-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'arpe-screenshots-'));
   const root = path.join(tmp, 'demo-root');
   const profile = path.join(tmp, 'chrome-profile');
   const out = path.join(repo, 'docs', 'img');

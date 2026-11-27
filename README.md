@@ -1,4 +1,4 @@
-# diamond-day — ARPE
+# ARPE
 
 [Start here](docs/GUIDE.md) — install ARPE, reproduce the countdown example, and start your own project.
 
@@ -32,7 +32,7 @@ On Windows (PowerShell 5.1+ or 7+):
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-The installer finds Bun or downloads it from the official distribution, creates `~/rays/demo`, and starts one local RPM board on `http://localhost:5195/board`. It adds `ray` to your user PATH. On Linux open a new login shell or run `source ~/.profile`; on Windows open a new terminal to pick up the user PATH. Open the printed URL; no Claude account, Git, npm or AutoHotkey is needed to see the board. The download needs internet access. The plain detached background process writes `~/.diamond-day/board.log`; `ray board` and `ray restore` restart it if needed. It does not register a system-wide daemon or a boot-time task.
+The installer finds Bun or downloads it from the official distribution, creates `~/rays/demo`, and starts one local RPM board on `http://localhost:5195/board`. It adds `ray` to your user PATH. On Linux open a new login shell or run `source ~/.profile`; on Windows open a new terminal to pick up the user PATH. Open the printed URL; no Claude account, Git, npm or AutoHotkey is needed to see the board. The download needs internet access. The plain detached background process writes `~/.arpe/board.log`; `ray board` and `ray restore` restart it if needed. It does not register a system-wide daemon or a boot-time task.
 
 <!-- Screenshot placeholder: docs/img/rpm-board.png (capture the project list and a project page from a clean install). -->
 
@@ -144,7 +144,7 @@ For manual checks, record an explicit verdict from the installed root:
 node tools/checks.mjs report demo 3 pass "Reviewed the built pages"
 ```
 
-The full grammar, safety limits, stale rule and cooldown are in [guides/checks.md](guides/checks.md). Reports and automatic results persist locally under `.diamond-day/checks-history.json` in the installed root, not in the public repository. PASS/FAIL results become STALE after 24 hours; MANUAL means no judgement yet; NEVER means no recorded run or no valid declaration. The service keeps 50 results per goal and limits concurrent runs to two.
+The full grammar, safety limits, stale rule and cooldown are in [guides/checks.md](guides/checks.md). Reports and automatic results persist locally under `.arpe/checks-history.json` in the installed root, not in the public repository. PASS/FAIL results become STALE after 24 hours; MANUAL means no judgement yet; NEVER means no recorded run or no valid declaration. The service keeps 50 results per goal and limits concurrent runs to two.
 
 ## Use this in a real ray
 

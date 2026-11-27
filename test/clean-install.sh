@@ -19,7 +19,7 @@ ray board demo2 | grep -F "/board/p/demo2"
 ray restore | grep -Fx 'Resume in a terminal: ray open demo2'
 if [[ ${RAY_RUNTIME:-bun} == node ]]; then runtime=(node --experimental-strip-types --disable-warning=ExperimentalWarning)
 elif command -v bun >/dev/null; then runtime=(bun)
-else runtime=("$HOME/.diamond-day/bun/bin/bun"); fi
+else runtime=("$HOME/.arpe/bun/bin/bun"); fi
 for n in demo demo2; do
   echo "RPM check: $n"
   "${runtime[@]}" "$REPO/tools/rpm-check.ts" "$HOME/rays/$n"

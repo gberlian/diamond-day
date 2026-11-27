@@ -1,7 +1,7 @@
 # PowerShell 7+. Verify a planted literal is rejected by the native scanner.
 $ErrorActionPreference = 'Stop'
 $Repo = Split-Path -Parent $PSScriptRoot
-$Tmp = Join-Path ([IO.Path]::GetTempPath()) ("diamond-day-private-" + [Guid]::NewGuid().ToString('N'))
+$Tmp = Join-Path ([IO.Path]::GetTempPath()) ("arpe-private-" + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory((Join-Path $Tmp 'repo/test')) | Out-Null
 try {
   [IO.File]::Copy((Join-Path $Repo 'test/no-private.ps1'), (Join-Path $Tmp 'repo/test/no-private.ps1'))

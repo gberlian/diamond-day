@@ -78,7 +78,7 @@ every five minutes until interrupted.
 
 ## Five-minute offline walkthrough
 
-Start in a **committed Git checkout** of diamond-day (not a ZIP extraction
+Start in a **committed Git checkout** of arpe (not a ZIP extraction
 with no `.git` directory). The shipped `examples/demo-ray/inbox` contains a
 real folder reply, `fix-navigation/`, and a fake ZIP reply,
 `clarify-about.zip`. Both target the existing `examples/demo-ray/site`
@@ -120,7 +120,7 @@ working directory is the project root. Adjust paths for your deployment.
 **cron (Linux/macOS)** — add this entry to `crontab -e`:
 
 ```cron
-*/5 * * * * cd /opt/diamond-day && node tools/diamond.mjs scan --inbox inbox --repos repos >> /tmp/diamond-scan.log 2>&1
+*/5 * * * * cd /opt/arpe && node tools/diamond.mjs scan --inbox inbox --repos repos >> /tmp/diamond-scan.log 2>&1
 ```
 
 **systemd user timer (Linux)** — create
@@ -131,7 +131,7 @@ working directory is the project root. Adjust paths for your deployment.
 Description=Diamond reply scan
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/diamond-day
+WorkingDirectory=/opt/arpe
 ExecStart=/usr/bin/node tools/diamond.mjs scan --inbox inbox --repos repos
 ```
 

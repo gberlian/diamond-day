@@ -9,12 +9,12 @@ import { startBoard, stopBoard } from './service.ts';
 const source=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const dir=installDir(), file=path.join(dir,'settings.json');
 const sh=(s:string)=>"'"+s.replace(/'/g,"'\\''")+"'";
-const marker='# diamond-day managed PATH';
+const marker='# arpe managed PATH';
 function profiles(add:boolean) {
   if(process.platform==='win32')return;
   const stateFile=path.join(dir,'profile-state.json');
   const state:Record<string,{existed:boolean;prefixNewline:boolean}> = existsSync(stateFile)?JSON.parse(readFileSync(stateFile,'utf8')):{};
-  const line=`export PATH="$HOME/.diamond-day/bin:$PATH" ${marker}\n`;
+  const line=`export PATH="$HOME/.arpe/bin:$PATH" ${marker}\n`;
   const names=['.profile','.bashrc','.zshrc',...['.bash_profile','.bash_login'].filter(n=>existsSync(path.join(home(),n)))];
   for(const n of add?names:Object.keys(state)) {
     const p=path.join(home(),n),existed=existsSync(p),old=existed?readFileSync(p,'utf8'):'';

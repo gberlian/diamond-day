@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
-$tmp = Join-Path ([IO.Path]::GetTempPath()) ('diamond-day-' + [Guid]::NewGuid().ToString('N'))
+$tmp = Join-Path ([IO.Path]::GetTempPath()) ('arpe-' + [Guid]::NewGuid().ToString('N'))
 $oldHome = $env:HOME; $oldPath = $env:Path; $oldRoot = $env:RAYS_ROOT; $oldPort = $env:RAY_BOARD_PORT; $oldTest = $env:RAY_TEST_NO_USER_PATH; $oldUserPath = [Environment]::GetEnvironmentVariable('Path','User')
 $env:HOME = Join-Path $tmp 'home with spaces'; New-Item -ItemType Directory -Force -Path $env:HOME | Out-Null
 $env:RAYS_ROOT = $null; $env:RAY_TEST_NO_USER_PATH = $null
@@ -14,11 +14,11 @@ function Install-Run([string[]]$flags) {
 }
 try {
   Install-Run @()
-  $bin = Join-Path $env:HOME '.diamond-day/bin'; if (([Environment]::GetEnvironmentVariable('Path','User') -split ';') -notcontains $bin) { throw 'User PATH entry missing' }; $env:Path = "$bin;$oldPath"
+  $bin = Join-Path $env:HOME '.arpe/bin'; if (([Environment]::GetEnvironmentVariable('Path','User') -split ';') -notcontains $bin) { throw 'User PATH entry missing' }; $env:Path = "$bin;$oldPath"
   $ray = (Get-Command ray.cmd -ErrorAction Stop).Source
   if (@(& $ray list) -notcontains 'demo' -or $LASTEXITCODE -ne 0) { throw 'Missing demo' }
   & $ray new demo2 'A small demo'; if ($LASTEXITCODE -ne 0) { throw 'ray new failed' }
-  $settings = Get-Content -Raw (Join-Path $env:HOME '.diamond-day/settings.json') | ConvertFrom-Json
+  $settings = Get-Content -Raw (Join-Path $env:HOME '.arpe/settings.json') | ConvertFrom-Json
   foreach ($name in @('demo','demo2')) {
     Write-Output "RPM check: $name"
     $rtargs = @($settings.runtimeArgs)
@@ -59,7 +59,7 @@ try {
   if ($watch.Elapsed.TotalSeconds -ge 900) { throw 'Install test exceeded 15 minutes' }
   Write-Output "PASS clean-install.ps1: board stopped; empty HOME after uninstall; $($watch.Elapsed.TotalSeconds)s elapsed"
 } finally {
-  if (Test-Path -LiteralPath (Join-Path $env:HOME '.diamond-day')) { & $exe -NoProfile -ExecutionPolicy Bypass -File $installer -Uninstall -Purge }
+  if (Test-Path -LiteralPath (Join-Path $env:HOME '.arpe')) { & $exe -NoProfile -ExecutionPolicy Bypass -File $installer -Uninstall -Purge }
   [Environment]::SetEnvironmentVariable('Path',$oldUserPath,'User')
   $env:HOME=$oldHome; $env:Path=$oldPath; $env:RAYS_ROOT=$oldRoot; $env:RAY_BOARD_PORT=$oldPort; $env:RAY_TEST_NO_USER_PATH=$oldTest
   Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue

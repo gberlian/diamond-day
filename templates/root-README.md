@@ -1,9 +1,9 @@
 # Rays root
 
-This is your working area, not the public `diamond-day` repository.
+This is your working area, not the public `arpe` repository.
 
 `rays.txt` lists active rays. Each ray's `GOALS.md` declares an explicit `check:` under its Check field.
-Results and the most recent 50 history records live in `.diamond-day/checks-history.json` in this root.
+Results and the most recent 50 history records live in `.arpe/checks-history.json` in this root.
 That directory is local and private; do not commit it.
 
 From this root:

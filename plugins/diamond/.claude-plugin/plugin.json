@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Scan agent replies at session start and turn end; review, merge, or skip with an audit reason.",
   "author": {
-    "name": "diamond-day contributors"
+    "name": "arpe contributors"
   },
   "license": "MIT",
   "keywords": [
