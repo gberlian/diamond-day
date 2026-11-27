@@ -1,8 +1,20 @@
-# diamond-day
+# diamond-day — ARPE
 
 [Start here](docs/GUIDE.md) — install ARPE, reproduce the countdown example, and start your own project.
 
-A public, folder-based way to keep AI coding sessions working toward outcomes. Each **ray** is a folder with `GOALS.md`; each goal has a readable acceptance criterion and a **runnable check or explicit manual judgement**. The local board shows recorded proof, not inferred status.
+Give AI agents measurable Results, a Purpose and a project folder that lets them pick up work after a session ends.
+
+Agents get lost as their conversations grow. The original goal and the last useful action can become difficult to recover from a long sequence of messages. A fresh session starts without that conversation.
+
+An agent can keep reporting work while the Result stays unchanged. In the countdown demo, cards were marked done without proof even though a browser test had passed. The owner had to ask what had happened.
+
+An agent can also ask a question in chat and wait while useful work remains. Repeated wakes can produce the same waiting report when a running card never ends.
+
+ARPE stands for **Agentic Result, Purpose, Execution**. The person defines the Result (what must be true) and Purpose (why it matters). Agents own Execution: planned, running and done cards, with a proof line under each done card and a Check for each Result. A current resume note lets a fresh session reconstruct the work from files. The local board brings the projects, cards and recorded evidence together.
+
+![ARPE loop: owner sets Result and Purpose, agent works cards, proof and Checks return to board; resume and decisions carry state](docs/img/arpe-loop.svg)
+
+[Why agents get lost, and the structure that keeps them working](docs/why-agents-get-lost.md) follows the recorded countdown project and explains the full system. This public kit provides the folder structure, local board, check tools and manual handoff workflow. Create a project with `ray new`, then start its agent with `ray open`.
 
 The RPM board uses Bun (installed automatically if missing) and no package dependencies. A shell is needed for installation (Bash on Linux/macOS, PowerShell on Windows). The original static-site tutorial below uses Node.js 20+. An AI account is **not** needed to try either demo.
 
@@ -31,7 +43,7 @@ ray board demo2
 bun ~/rays/tools/rpm-check.ts ~/rays/demo2
 ```
 
-The generated GOALS.md includes Ultimate Vision, Ultimate Purpose, Roles, a current weekly review, and a measurable first Result with Purpose, three chunks, a must, leverage/durations, a runnable file-age Check and Now. The checker validates the RPM structure; it does not execute the declared outcome check. Update the review weekly. The new board retains the original dark projects list and three-column RPM plan, with project pages with read-only plans, a local card-linked decision inbox, and decision and insight notes, and document navigation. Edit the underlying Markdown; the board polls for changes. The private fleet/chat/ledger integrations and automated goal execution are deliberately not included. `ray open NAME` opens the project board and runs Claude Code in your terminal (install and sign in to the agent separately). `ray stop NAME` stops a session started by `ray open` and removes it from the active list, without stopping the shared board. `ray restore` restarts the board and reopens active rays in Windows Terminal or a graphical Linux terminal when available; otherwise it prints the commands to resume them. `RAY_TERMINAL_BIN` and `RAY_TERMINAL_ARGS` (a JSON array of arguments before the launched command) override terminal discovery; `RAY_RESTORE_MANUAL=1` requests instructions only. Browser and desktop placement are optional. No Claude trust settings are changed.
+The generated GOALS.md includes Ultimate Vision, Ultimate Purpose, Roles, a current weekly review, and a measurable first Result with Purpose, three chunks, a must, leverage/durations, a runnable file-age Check and Now. The checker validates the RPM structure; it does not execute the declared outcome check. Update the review weekly. The new board retains the original dark projects list and three-column RPM plan, with read-only project pages, decision and insight notes, and document navigation. Edit the underlying Markdown; the board polls for changes. The private fleet/chat/ledger integrations and automated goal execution are deliberately not included. `ray open NAME` opens the project board and runs Claude Code in your terminal (install and sign in to the agent separately). `ray stop NAME` stops a session started by `ray open` and removes it from the active list, without stopping the shared board. `ray restore` restarts the board and reopens active rays in Windows Terminal or a graphical Linux terminal when available; otherwise it prints the commands to resume them. `RAY_TERMINAL_BIN` and `RAY_TERMINAL_ARGS` (a JSON array of arguments before the launched command) override terminal discovery; `RAY_RESTORE_MANUAL=1` requests instructions only. Browser and desktop placement are optional. No Claude trust settings are changed.
 
 Configuration: `RAYS_ROOT` (default `~/rays`), `RAY_BOARD_PORT` (default 5195), or installer `--root PATH` / `--port PORT` (`-Root` / `-Port` on Windows). These are saved at installation, not interpreted independently by the service. `--ray NAME` adds additional projects; `--agent` selects Claude Code, Codex or Claude Desktop. `RAY_AGENT_BIN` overrides the agent executable, `RAY_BROWSER_BIN` overrides the system browser opener, `RAY_NO_BROWSER=1` disables opening a window. On Windows `RAY_AUTOHOTKEY_BIN` and `RAY_WINDOW_SCRIPT` can opt into a local placement script; both must exist and neither is required. The script receives the ray name and URL. For offline development only, explicitly set `RAY_RUNTIME=node` with Node.js 22.13+; the default always uses Bun and reports a failed download rather than silently switching.
 

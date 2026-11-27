@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 670" width="960" height="670" role="img" aria-labelledby="title desc">
+<title id="title">ARPE execution loop</title><desc id="desc">The owner defines Result and Purpose; agents execute cards, attach proof and run Checks. The board returns evidence and questions. The resume note carries state across sessions.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9Z" fill="#526479"/></marker></defs>
+<rect width="960" height="670" rx="18" fill="#f5f7fa"/>
+<style>text{font-family:system-ui,Arial,sans-serif;fill:#182b40} .title{font-size:29px;font-weight:700} .sub{font-size:16px;fill:#53677c} .head{font-size:21px;font-weight:700} .body{font-size:17px} .small{font-size:15px;fill:#53677c} .line{stroke:#526479;stroke-width:2.5;fill:none;marker-end:url(#arrow)} .dash{stroke-dasharray:7 5}</style>
+<text x="32" y="44" class="title" text-anchor="start">ARPE execution loop</text>
+<text x="32" y="71" class="sub" text-anchor="start">Full system workflow • project state persists in files</text>
+<rect x="32" y="104" width="270" height="126" rx="12" fill="#e8f0fb" stroke="#8caed3" stroke-width="1.8"/>
+<text x="50" y="135" class="head" text-anchor="start">Person</text>
+<text x="50" y="162" class="body" text-anchor="start">Result: what must be true</text>
+<text x="50" y="187" class="body" text-anchor="start">Purpose: why it matters</text>
+<rect x="345" y="104" width="270" height="126" rx="12" fill="#ffffff" stroke="#b4c4d3" stroke-width="1.8"/>
+<text x="363" y="135" class="head" text-anchor="start">Project folder</text>
+<text x="363" y="162" class="body" text-anchor="start">Goals and plan</text>
+<text x="363" y="187" class="body" text-anchor="start">Decisions and Insights</text>
+<rect x="658" y="104" width="270" height="126" rx="12" fill="#e8f0fb" stroke="#8caed3" stroke-width="1.8"/>
+<text x="676" y="135" class="head" text-anchor="start">Agent session</text>
+<text x="676" y="162" class="body" text-anchor="start">Read current goals</text>
+<text x="676" y="187" class="body" text-anchor="start">Choose actionable work</text>
+<path d="M302 166 H345" class="line"/>
+<path d="M615 166 H658" class="line"/>
+<rect x="658" y="286" width="270" height="146" rx="12" fill="#ffffff" stroke="#b4c4d3" stroke-width="1.8"/>
+<text x="676" y="317" class="head" text-anchor="start">Execution cards</text>
+<text x="676" y="344" class="body" text-anchor="start">Planned → Running → Done</text>
+<text x="676" y="369" class="body" text-anchor="start">Attach proof to done cards</text>
+<text x="676" y="394" class="body" text-anchor="start">Run the Result’s Check</text>
+<path d="M793 230 V286" class="line"/>
+<rect x="345" y="286" width="270" height="146" rx="12" fill="#e4f3ed" stroke="#85b5a0" stroke-width="1.8"/>
+<text x="363" y="317" class="head" text-anchor="start">Local board</text>
+<text x="363" y="344" class="body" text-anchor="start">Show cards and proof</text>
+<text x="363" y="369" class="body" text-anchor="start">PASS / FAIL / STALE</text>
+<text x="363" y="394" class="body" text-anchor="start">Show questions and answers</text>
+<path d="M658 359 H615" class="line"/>
+<rect x="32" y="286" width="270" height="146" rx="12" fill="#ffffff" stroke="#b4c4d3" stroke-width="1.8"/>
+<text x="50" y="317" class="head" text-anchor="start">Decision inbox</text>
+<text x="50" y="344" class="body" text-anchor="start">Person answers here</text>
+<text x="50" y="369" class="body" text-anchor="start">Save answer to project</text>
+<text x="50" y="394" class="body" text-anchor="start">Continue independent work</text>
+<path d="M345 359 H302" class="line"/>
+<path d="M167 286 V230" class="line"/>
+<rect x="32" y="500" width="583" height="116" rx="12" fill="#ffffff" stroke="#b4c4d3" stroke-width="1.8"/>
+<text x="50" y="531" class="head" text-anchor="start">Resume note</text>
+<text x="50" y="558" class="body" text-anchor="start">Now / In flight / Next / Waiting on the owner / Gotchas</text>
+<text x="50" y="583" class="body" text-anchor="start">Update after each meaningful step.</text>
+<path d="M793 432 V558 H615" class="line"/>
+<path d="M615 530 H638 V250 H710 V230" class="line dash"/>
+<text x="655" y="489" class="small" text-anchor="start">Record state</text>
+<text x="650" y="514" class="small" text-anchor="start">Fresh session</text>
+<text x="650" y="534" class="small" text-anchor="start">reads note</text>
+<text x="32" y="647" class="small" text-anchor="start">Solid arrows: work and evidence  •  Dashed arrow: restart from saved state</text>
+</svg>
