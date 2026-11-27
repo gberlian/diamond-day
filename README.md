@@ -1,52 +1,59 @@
 # ARPE
 
-[Start here](docs/GUIDE.md) — install ARPE, reproduce the countdown example, and start your own project.
+ARPE (Agentic Result-oriented Purpose-driven Execution) is a local board and command-line kit for directing AI agents by the outcome you want, rather than by a list of instructions.
 
-Give AI agents measurable Results, a Purpose and a project folder that lets them pick up work after a session ends.
+You write the **Result** (what must be true) and **Purpose** (why it matters). Your agents own the plan, run the work, record proof on finished cards and test the Result with a Check. When a choice needs you, it goes to the board's decision inbox. The project files let a fresh session pick up where the last one stopped.
 
-Agents get lost as their conversations grow. The original goal and the last useful action can become difficult to recover from a long sequence of messages. A fresh session starts without that conversation.
+![Illustration of the countdown project board, with planned, running and done cards and a question waiting for the owner](docs/figures/08-board.png)
 
-An agent can keep reporting work while the Result stays unchanged. In the countdown demo, cards were marked done without proof even though a browser test had passed. The owner had to ask what had happened.
+*The book's drawing of the countdown project at owner review. The current kit also runs declared Checks. See the [recorded board](docs/tutorial/frames/08-build-1280.png) for a real capture.*
 
-An agent can also ask a question in chat and wait while useful work remains. Repeated wakes can produce the same waiting report when a running card never ends.
+## Install
 
-ARPE stands for **Agentic Result-oriented Purpose-driven Execution**. The person defines the Result (what must be true) and Purpose (why it matters). Agents own Execution: planned, running and done cards, with a proof line under each done card and a Check for each Result. A current resume note lets a fresh session reconstruct the work from files. The local board brings the projects, cards and recorded evidence together.
-
-![ARPE loop: owner sets Result and Purpose, agent works cards, proof and Checks return to board; resume and decisions carry state](docs/img/arpe-loop.svg)
-
-[Why agents get lost, and the structure that keeps them working](docs/why-agents-get-lost.md) follows the recorded countdown project and explains the full system. This public kit provides the folder structure, local board, check tools and manual handoff workflow. Create a project with `arpe new`, then start its agent with `arpe open`.
-
-The RPM board uses Bun (installed automatically if missing) and no package dependencies. A shell is needed for installation (Bash on Linux/macOS, PowerShell on Windows). The original static-site tutorial below uses Node.js 20+. An AI account is **not** needed to try either demo.
-
-
-**[Watch the recorded install](docs/tutorial/README.md)**: a real install on Windows, step by step, with screenshots and a [video](docs/tutorial/tutorial.mp4).
-
-## The board
-
-From an extracted checkout, run one command on Linux (Bash, curl and unzip available):
+On macOS or Linux (Git, Bash, curl and unzip):
 
 ```sh
+git clone https://github.com/gberlian/arpe.git
+cd arpe
 bash install.sh
 ```
 
-On Windows (PowerShell 5.1+ or 7+):
+On Windows (Git and PowerShell 5.1+):
 
 ```powershell
+git clone https://github.com/gberlian/arpe.git
+cd arpe
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-The installer finds Bun or downloads it from the official distribution, creates `~/rays/demo`, and starts one local RPM board on `http://localhost:5195/board`. It adds `arpe` to your user PATH. On Linux open a new login shell or run `source ~/.profile`; on Windows open a new terminal to pick up the user PATH. Open the printed URL; no Claude account, Git, npm or AutoHotkey is needed to see the board. The download needs internet access. The plain detached background process writes `~/.arpe/board.log`; `arpe board` and `arpe restore` restart it if needed. It does not register a system-wide daemon or a boot-time task.
+Or [download the repository ZIP](https://github.com/gberlian/arpe), extract it and run the last command from that folder. The installer finds or downloads Bun, starts the local board and prints its address. Open that address. Open a new terminal to pick up the `arpe` command (on Linux, `source ~/.profile` also works).
 
-<!-- Screenshot placeholder: docs/img/rpm-board.png (capture the project list and a project page from a clean install). -->
+## Your first project
+
+Install and sign in to Claude Code separately for a live agent session. In the new terminal:
 
 ```sh
-arpe new demo2 "A small demo"
-arpe list
-arpe board demo2
-bun ~/rays/tools/rpm-check.ts ~/rays/demo2
+arpe new club-page "A public information page for our club"
+arpe board club-page
+arpe open club-page
 ```
 
-The generated GOALS.md includes Ultimate Vision, Ultimate Purpose, Roles, a current weekly review, and a measurable first Result with Purpose, three chunks, a must, leverage/durations, a runnable file-age Check and Now. The separate RPM checker validates plan structure; the board executes declared outcome checks on startup and every ten minutes, with a one-minute scheduler scan. Open any card’s Check tab for the last verdict, output, declaration and Run control. Update the review weekly. The managed board uses the owner’s dark projects list and three-column RPM plan, with Result, Purpose and Plan, a decision inbox with Dismiss, document navigation, Notes/Plans/Changes tabs, clamped local transcript chat, and stats. Edit the underlying Markdown; the board polls for changes. The portable board saves chat messages as notes; it does not install a private live-session messaging hook, fleet ledger or autonomous agent execution. `arpe open NAME` opens the project board and runs Claude Code in your terminal (install and sign in to the agent separately). `arpe stop NAME` stops a session started by `arpe open` and removes it from the active list, without stopping the shared board. `arpe restore` restarts the board and reopens active rays in Windows Terminal or a graphical Linux terminal when available; otherwise it prints the commands to resume them. `RAY_TERMINAL_BIN` and `RAY_TERMINAL_ARGS` (a JSON array of arguments before the launched command) override terminal discovery; `RAY_RESTORE_MANUAL=1` requests instructions only. Browser and desktop placement are optional. No Claude trust settings are changed.
+Agree on a measurable Result and its Purpose before the agent starts work. Ask it to write and run a Check, record proof and ask before publishing. [Start your own project](docs/GUIDE.md#4-start-your-own-project) shows a concrete goal and test specification.
+
+No AI account is needed to try the included countdown replay. It uses a saved page, a real browser test and a decision you answer on the board.
+
+![Recorded board after running the countdown browser test, with an owner review waiting](docs/tutorial/frames/08-build-1280.png)
+
+- [Follow the countdown walkthrough](docs/GUIDE.md) or [watch the recorded install](docs/tutorial/tutorial.mp4) ([steps and pictures](docs/tutorial/README.md)).
+- [Read ARPE, simply](docs/ARPE-simply.md) — the illustrated reader's path through the method.
+- [Why agents get lost](docs/why-agents-get-lost.md) — how project files, proof and decisions help.
+- [Agent setup](guides/claude-code.md) · [Checks](guides/checks.md) · [Handoffs](guides/handoffs.md) · [Contributing](CONTRIBUTING.md).
+
+## The board
+
+The default install creates `~/rays/demo` and starts one local board at `http://localhost:5195/board`. It needs internet access if Bun must be downloaded; no Git is needed when installing from an extracted archive. The detached background process writes `~/.arpe/board.log`. `arpe board` and `arpe restore` restart it if needed. It does not register a system-wide daemon or a boot-time task.
+
+A project created with `arpe new` has a GOALS.md that includes Ultimate Vision, Ultimate Purpose, Roles, a current weekly review, and a measurable first Result with Purpose, three chunks, a must, leverage/durations, a runnable file-age Check and Now. The separate RPM checker validates plan structure; the board executes declared outcome checks on startup and every ten minutes, with a one-minute scheduler scan. Open any card’s Check tab for the last verdict, output, declaration and Run control. Update the review weekly. The managed board uses the owner’s dark projects list and three-column RPM plan, with Result, Purpose and Plan, a decision inbox with Dismiss, document navigation, Notes/Plans/Changes tabs, clamped local transcript chat, and stats. Edit the underlying Markdown; the board polls for changes. The portable board saves chat messages as notes; it does not install a private live-session messaging hook, fleet ledger or autonomous agent execution. `arpe open NAME` opens the project board and runs Claude Code in your terminal (install and sign in to the agent separately). `arpe stop NAME` stops a session started by `arpe open` and removes it from the active list, without stopping the shared board. `arpe restore` restarts the board and reopens active rays in Windows Terminal or a graphical Linux terminal when available; otherwise it prints the commands to resume them. `RAY_TERMINAL_BIN` and `RAY_TERMINAL_ARGS` (a JSON array of arguments before the launched command) override terminal discovery; `RAY_RESTORE_MANUAL=1` requests instructions only. Browser and desktop placement are optional. No Claude trust settings are changed.
 
 Configuration: `RAYS_ROOT` (default `~/rays`), `RAY_BOARD_PORT` (default 5195), or installer `--root PATH` / `--port PORT` (`-Root` / `-Port` on Windows). These are saved at installation, not interpreted independently by the service. `--ray NAME` adds additional projects; `--agent` selects Claude Code, Codex or Claude Desktop. `RAY_AGENT_BIN` overrides the agent executable, `RAY_BROWSER_BIN` overrides the system browser opener, `RAY_NO_BROWSER=1` disables opening a window. On Windows `RAY_AUTOHOTKEY_BIN` and `RAY_WINDOW_SCRIPT` can opt into a local placement script; both must exist and neither is required. The script receives the ray name and URL. For offline development only, explicitly set `RAY_RUNTIME=node` with Node.js 22.13+; the default always uses Bun and reports a failed download rather than silently switching.
 

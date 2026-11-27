@@ -336,7 +336,7 @@ export async function handleDecisionsApi(req: Request, url: URL, service: Decisi
   }
   if (url.pathname === "/api/decisions/answer") {
     if (req.method !== "POST") return json({ error: "POST_required" }, 405);
-    if ((remoteAddress !== undefined && ![[127,0,0,1].join("."), "::1", ("::ffff:" + [127,0,0,1].join("."))].includes(remoteAddress)) || !authorizeDecisionPost(req, url, service, host)) return json({ error: "invalid_origin_host_or_page_token" }, 403);
+    if ((remoteAddress !== undefined && ! [[127,0,0,1].join("."), "::1", ("::ffff:" + [127,0,0,1].join("."))].includes(remoteAddress)) || !authorizeDecisionPost(req, url, service, host)) return json({ error: "invalid_origin_host_or_page_token" }, 403);
     if (!(req.headers.get("content-type") ?? "").startsWith("application/json")) return json({ error: "JSON_required" }, 415);
     const bodyText = await req.text();
     if (Buffer.byteLength(bodyText) > 4096) return json({ error: "request too large" }, 413);

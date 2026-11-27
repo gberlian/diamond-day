@@ -1,6 +1,6 @@
 # Getting started with ARPE — recorded tutorial
 
-Recorded on win32 (powershell), 2026-11-27T20:36:36.686Z; runtime: bun.
+Recorded on win32 (powershell), 2026-11-27T20:47:39.508Z; runtime: bun.
 
 This is an actual disposable installation. Follow [Guide sections 2–4](../GUIDE.md) for the full explanation. The paths and free port in the output belong to this run; use your own printed address. On Linux open a new login shell or run `source ~/.profile`; on Windows open a new terminal. The recorder suppresses persistent Windows PATH changes. No AI account or publishing service is used. This records the manual Guide path, choosing local approval; it omits the optional intentionally failing starter check, external publication, and live agent launch (which requires separate sign-in).
 
@@ -31,9 +31,9 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File ./install.ps1
 Actual terminal output (exit 0):
 
 ```
-Created demo: <temp>\arpe-tutorial-DAmAR8\home with spaces\rays\demo
-PASS install: http://localhost:54960/board (runtime: Bun)
-PATH: <temp>\arpe-tutorial-DAmAR8\home with spaces\.arpe\bin
+Created demo: <temp>\arpe-tutorial-IeEpLr\home with spaces\rays\demo
+PASS install: http://localhost:57841/board (runtime: Bun)
+PATH: <temp>\arpe-tutorial-IeEpLr\home with spaces\.arpe\bin
 ```
 
 ```powershell
@@ -43,7 +43,7 @@ PATH: <temp>\arpe-tutorial-DAmAR8\home with spaces\.arpe\bin
 Actual terminal output (exit 0):
 
 ```
-<temp>\arpe-tutorial-DAmAR8\home with spaces\.arpe\bin\arpe.cmd
+<temp>\arpe-tutorial-IeEpLr\home with spaces\.arpe\bin\arpe.cmd
 ```
 
 Verified: HTTP 200; visible board state.
@@ -73,7 +73,7 @@ arpe board
 Actual terminal output (exit 0):
 
 ```
-http://localhost:54960/board
+http://localhost:57841/board
 ```
 
 Verified: HTTP 200; visible board state.
@@ -93,7 +93,7 @@ arpe new club-page "A public information page for our club"
 Actual terminal output (exit 0):
 
 ```
-Created club-page: <temp>\arpe-tutorial-DAmAR8\home with spaces\rays\club-page
+Created club-page: <temp>\arpe-tutorial-IeEpLr\home with spaces\rays\club-page
 ```
 
 Verified: HTTP 200; visible board state.
@@ -113,7 +113,7 @@ arpe board club-page
 Actual terminal output (exit 0):
 
 ```
-http://localhost:54960/board/p/club-page
+http://localhost:57841/board/p/club-page
 ```
 
 Verified: HTTP 200; visible board state.
@@ -145,7 +145,7 @@ arpe new arpe-demo --from examples/arpe-demo
 Actual terminal output (exit 0):
 
 ```
-Created arpe-demo: <temp>\arpe-tutorial-DAmAR8\home with spaces\rays\arpe-demo
+Created arpe-demo: <temp>\arpe-tutorial-IeEpLr\home with spaces\rays\arpe-demo
 ```
 
 ```powershell
@@ -155,7 +155,7 @@ arpe board arpe-demo
 Actual terminal output (exit 0):
 
 ```
-http://localhost:54960/board/p/arpe-demo
+http://localhost:57841/board/p/arpe-demo
 ```
 
 Verified: HTTP 200; visible board state; 0 done cards.
@@ -168,7 +168,7 @@ Verified: HTTP 200; visible board state; 0 done cards.
 
 From the installed arpe-demo directory, review the mission; the structural check passes and one card is done.
 
-From the installed project folder (normally ~/rays/arpe-demo). Recorded working directory: `<temp>\arpe-tutorial-DAmAR8\home with spaces\rays\arpe-demo`.
+From the installed project folder (normally ~/rays/arpe-demo). Recorded working directory: `<temp>\arpe-tutorial-IeEpLr\home with spaces\rays\arpe-demo`.
 
 ```powershell
 bun replay.mjs prepare
@@ -217,7 +217,7 @@ Verified: HTTP 200; visible board state; 1 done cards.
 
 The five browser checks pass; the board records four done cards and a pending owner decision.
 
-From the installed project folder (normally ~/rays/arpe-demo). Recorded working directory: `<temp>\arpe-tutorial-DAmAR8\home with spaces\rays\arpe-demo`.
+From the installed project folder (normally ~/rays/arpe-demo). Recorded working directory: `<temp>\arpe-tutorial-IeEpLr\home with spaces\rays\arpe-demo`.
 
 ```powershell
 bun replay.mjs build
@@ -268,7 +268,7 @@ Verified: HTTP 200; visible board state; persisted local answer.
 
 The replay reads the actual saved answer, runs the browser Check again and records six completed cards.
 
-From the installed project folder (normally ~/rays/arpe-demo). Recorded working directory: `<temp>\arpe-tutorial-DAmAR8\home with spaces\rays\arpe-demo`.
+From the installed project folder (normally ~/rays/arpe-demo). Recorded working directory: `<temp>\arpe-tutorial-IeEpLr\home with spaces\rays\arpe-demo`.
 
 ```powershell
 bun replay.mjs finish
@@ -296,7 +296,7 @@ Verified: HTTP 200; visible board state; 6 done cards.
 
 The final Check passes and the seventh card is done. The Result is archived in the project.
 
-From the installed project folder (normally ~/rays/arpe-demo). Recorded working directory: `<temp>\arpe-tutorial-DAmAR8\home with spaces\rays\arpe-demo`.
+From the installed project folder (normally ~/rays/arpe-demo). Recorded working directory: `<temp>\arpe-tutorial-IeEpLr\home with spaces\rays\arpe-demo`.
 
 ```powershell
 bun replay.mjs close
