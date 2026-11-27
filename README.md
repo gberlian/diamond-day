@@ -45,7 +45,6 @@ No AI account is needed to try the included countdown replay. It uses a saved pa
 ![Recorded board after running the countdown browser test, with an owner review waiting](docs/tutorial/frames/08-build-1280.png)
 
 - [Follow the countdown walkthrough](docs/GUIDE.md) or [watch the recorded install](docs/tutorial/tutorial.mp4) ([steps and pictures](docs/tutorial/README.md)).
-- [Read ARPE, simply](docs/ARPE-simply.md) — the illustrated reader's path through the method.
 - [Why agents get lost](docs/why-agents-get-lost.md) — how project files, proof and decisions help.
 - [Agent setup](guides/claude-code.md) · [Checks](guides/checks.md) · [Handoffs](guides/handoffs.md) · [Contributing](CONTRIBUTING.md).
 
