@@ -14,7 +14,7 @@ ARPE stands for **Agentic Result-oriented Purpose-driven Execution**. The person
 
 ![ARPE loop: owner sets Result and Purpose, agent works cards, proof and Checks return to board; resume and decisions carry state](docs/img/arpe-loop.svg)
 
-[Why agents get lost, and the structure that keeps them working](docs/why-agents-get-lost.md) follows the recorded countdown project and explains the full system. This public kit provides the folder structure, local board, check tools and manual handoff workflow. Create a project with `ray new`, then start its agent with `ray open`.
+[Why agents get lost, and the structure that keeps them working](docs/why-agents-get-lost.md) follows the recorded countdown project and explains the full system. This public kit provides the folder structure, local board, check tools and manual handoff workflow. Create a project with `arpe new`, then start its agent with `arpe open`.
 
 The RPM board uses Bun (installed automatically if missing) and no package dependencies. A shell is needed for installation (Bash on Linux/macOS, PowerShell on Windows). The original static-site tutorial below uses Node.js 20+. An AI account is **not** needed to try either demo.
 
@@ -32,18 +32,18 @@ On Windows (PowerShell 5.1+ or 7+):
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-The installer finds Bun or downloads it from the official distribution, creates `~/rays/demo`, and starts one local RPM board on `http://localhost:5195/board`. It adds `ray` to your user PATH. On Linux open a new login shell or run `source ~/.profile`; on Windows open a new terminal to pick up the user PATH. Open the printed URL; no Claude account, Git, npm or AutoHotkey is needed to see the board. The download needs internet access. The plain detached background process writes `~/.arpe/board.log`; `ray board` and `ray restore` restart it if needed. It does not register a system-wide daemon or a boot-time task.
+The installer finds Bun or downloads it from the official distribution, creates `~/rays/demo`, and starts one local RPM board on `http://localhost:5195/board`. It adds `arpe` to your user PATH. On Linux open a new login shell or run `source ~/.profile`; on Windows open a new terminal to pick up the user PATH. Open the printed URL; no Claude account, Git, npm or AutoHotkey is needed to see the board. The download needs internet access. The plain detached background process writes `~/.arpe/board.log`; `arpe board` and `arpe restore` restart it if needed. It does not register a system-wide daemon or a boot-time task.
 
 <!-- Screenshot placeholder: docs/img/rpm-board.png (capture the project list and a project page from a clean install). -->
 
 ```sh
-ray new demo2 "A small demo"
-ray list
-ray board demo2
+arpe new demo2 "A small demo"
+arpe list
+arpe board demo2
 bun ~/rays/tools/rpm-check.ts ~/rays/demo2
 ```
 
-The generated GOALS.md includes Ultimate Vision, Ultimate Purpose, Roles, a current weekly review, and a measurable first Result with Purpose, three chunks, a must, leverage/durations, a runnable file-age Check and Now. The checker validates the RPM structure; it does not execute the declared outcome check. Update the review weekly. The new board retains the original dark projects list and three-column RPM plan, with Result, Purpose and Plan, a decision inbox with Dismiss, document navigation, Notes/Plans/Changes tabs, clamped local transcript chat, and stats. Edit the underlying Markdown; the board polls for changes. The portable board saves chat messages as notes; it does not install a private live-session messaging hook, fleet ledger or automated goal execution. `ray open NAME` opens the project board and runs Claude Code in your terminal (install and sign in to the agent separately). `ray stop NAME` stops a session started by `ray open` and removes it from the active list, without stopping the shared board. `ray restore` restarts the board and reopens active rays in Windows Terminal or a graphical Linux terminal when available; otherwise it prints the commands to resume them. `RAY_TERMINAL_BIN` and `RAY_TERMINAL_ARGS` (a JSON array of arguments before the launched command) override terminal discovery; `RAY_RESTORE_MANUAL=1` requests instructions only. Browser and desktop placement are optional. No Claude trust settings are changed.
+The generated GOALS.md includes Ultimate Vision, Ultimate Purpose, Roles, a current weekly review, and a measurable first Result with Purpose, three chunks, a must, leverage/durations, a runnable file-age Check and Now. The separate RPM checker validates plan structure; the board executes declared outcome checks on startup and every ten minutes, with a one-minute scheduler scan. Open any card’s Check tab for the last verdict, output, declaration and Run control. Update the review weekly. The managed board uses the owner’s dark projects list and three-column RPM plan, with Result, Purpose and Plan, a decision inbox with Dismiss, document navigation, Notes/Plans/Changes tabs, clamped local transcript chat, and stats. Edit the underlying Markdown; the board polls for changes. The portable board saves chat messages as notes; it does not install a private live-session messaging hook, fleet ledger or autonomous agent execution. `arpe open NAME` opens the project board and runs Claude Code in your terminal (install and sign in to the agent separately). `arpe stop NAME` stops a session started by `arpe open` and removes it from the active list, without stopping the shared board. `arpe restore` restarts the board and reopens active rays in Windows Terminal or a graphical Linux terminal when available; otherwise it prints the commands to resume them. `RAY_TERMINAL_BIN` and `RAY_TERMINAL_ARGS` (a JSON array of arguments before the launched command) override terminal discovery; `RAY_RESTORE_MANUAL=1` requests instructions only. Browser and desktop placement are optional. No Claude trust settings are changed.
 
 Configuration: `RAYS_ROOT` (default `~/rays`), `RAY_BOARD_PORT` (default 5195), or installer `--root PATH` / `--port PORT` (`-Root` / `-Port` on Windows). These are saved at installation, not interpreted independently by the service. `--ray NAME` adds additional projects; `--agent` selects Claude Code, Codex or Claude Desktop. `RAY_AGENT_BIN` overrides the agent executable, `RAY_BROWSER_BIN` overrides the system browser opener, `RAY_NO_BROWSER=1` disables opening a window. On Windows `RAY_AUTOHOTKEY_BIN` and `RAY_WINDOW_SCRIPT` can opt into a local placement script; both must exist and neither is required. The script receives the ray name and URL. For offline development only, explicitly set `RAY_RUNTIME=node` with Node.js 22.13+; the default always uses Bun and reports a failed download rather than silently switching.
 
@@ -65,9 +65,9 @@ Uninstall removes the background board, managed runtime, CLI and managed PATH en
 
 ### Share a project
 
-Run `ray share start 5196` to start the separate loopback guest listener, then `ray share demo Guest viewer 24` to create a one-day invitation. For remote access, configure Tailscale Serve and pass its HTTPS origin to `ray share start 5196 HTTPS_ORIGIN`. The owner board's **sharing** page manages members, roles and published files. `ray share stop` disables the listener. See [Share a project with one person](docs/GUIDE.md#share-a-project-with-one-person) for the full setup, access boundary and revocation. Never expose the owner board port.
+Run `arpe share start 5196` to start the separate loopback guest listener, then `arpe share demo Guest viewer 24` to create a one-day invitation. For remote access, configure Tailscale Serve and pass its HTTPS origin to `arpe share start 5196 HTTPS_ORIGIN`. The owner board's **sharing** page manages members, roles and published files. `arpe share stop` disables the listener. See [Share a project with one person](docs/GUIDE.md#share-a-project-with-one-person) for the full setup, access boundary and revocation. Never expose the owner board port.
 
-Stats and chat use local records; optional prompt-proxy usage is hidden without configured data. Notes are durable files. See the Guide for settings and `ray note`.
+Stats and chat use local records; optional prompt-proxy usage is hidden without configured data. Notes are durable files. See the Guide for settings and `arpe note`.
 
 ## Original static-site demo in under five minutes
 
@@ -107,7 +107,7 @@ Refresh the browser: the links goal is now **PASS**. The `--force` flag override
 
 ![Real browser capture after repairing the broken link and rerunning the checks](docs/img/board-repaired.png)
 
-The screenshots above are captured from a fresh, independently installed demo using real Chrome/Edge/Chromium and the Chrome DevTools Protocol. To reproduce both PNGs, with a locally installed browser:
+The legacy walkthrough screenshots above are captured from a fresh, independently installed demo using real Chrome/Edge/Chromium and the Chrome DevTools Protocol. To reproduce both PNGs, with a locally installed browser:
 
 ```sh
 node tools/screenshots.mjs
@@ -168,3 +168,7 @@ bash test/no-private-regression.sh
 On Windows, use `pwsh -NoProfile -File test/clean-install.ps1`, `test/no-private.ps1`, and `test/no-private-regression.ps1`. CI runs the install, demo, Node tests, disclosure scans and real browser capture on Windows, macOS and Linux, then uploads screenshots as artifacts.
 
 Agent guides: [Claude Code](guides/claude-code.md), [Codex](guides/codex.md), [Claude Desktop](guides/claude-desktop.md). Other workflows: [coordinator](guides/coordinator.md), [handoffs](guides/handoffs.md), [board and notes](guides/board-and-viewer.md).
+
+### Managed board captures
+
+After a clean managed install, run `node tools/capture-managed-board.mjs http://localhost:5195` to produce `docs/img/kit-home.png`, `kit-project.png` and `kit-card-check.png`. The existing legacy walkthrough images above are not captures of the managed board.

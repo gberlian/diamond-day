@@ -9,7 +9,7 @@ import { createServer } from 'node:net';
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const example=path.join(repo,'examples','arpe-demo');
 const strip=['--experimental-strip-types','--disable-warning=ExperimentalWarning'];
-const cli=path.join(repo,'board','src','ray-cli.ts');
+const cli=path.join(repo,'board','src','arpe-cli.ts');
 const rpm=path.join(repo,'tools','rpm-check.ts');
 function run(entry,args=[],opts={}){return spawnSync(process.execPath,[...(entry.endsWith('.ts')?strip:[]),entry,...args],{encoding:'utf8',timeout:100000,...opts});}
 function passed(r){assert.equal(r.status,0,`exit ${r.status}\n${r.stdout}\n${r.stderr}\n${r.error||''}`);return r.stdout;}
@@ -23,7 +23,7 @@ test('arpe-demo example: RPM 17/17 and historical starter fails five hard rules'
   assert.equal(bad.status,1);assert.match(bad.stdout,/score 10\/17.*hard failures 5: FAIL/);
 });
 
-test('arpe-demo example: ray new --from copies files, registers ray and refuses overwrite',t=>{
+test('arpe-demo example: arpe new --from copies files, registers ray and refuses overwrite',t=>{
   const home=temp(t);const {root,env}=config(home);
   assert.match(passed(run(cli,['new','arpe-demo','--from',path.relative(repo,example)],{cwd:repo,env})),/Created arpe-demo/);
   const target=path.join(root,'arpe-demo');assert.deepEqual(tree(target),tree(example));
@@ -56,7 +56,7 @@ test('arpe-demo example: board decision API links a card and saves one owner ans
   assert.equal((await request({origin:base,'x-decision-token':token},'invalid')).status,400);
   assert.equal((await request({origin:base,'x-decision-token':token})).status,200);
   assert.equal(JSON.parse(readFileSync(path.join(ray,'decisions','countdown-review.answer.json'),'utf8')).key,'online');
-  assert.equal((await request({origin:base,'x-decision-token':token},'local')).status,400);
+  assert.equal((await request({origin:base,'x-decision-token':token},'local')).status,409);
   assert.equal((await (await fetch(base+'/api/board/project/arpe-demo')).json()).results[0].cards[4].decisionItem.state,'answered');
 });
 

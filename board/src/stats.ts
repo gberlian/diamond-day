@@ -243,7 +243,7 @@ export async function collectStats(options: StatsOptions): Promise<Stats> {
   const periods = (du: DailyUsage[], h: Handoff[], c: Check[]) => ({ today: period(du, h, c, dayMatch), sevenDays: period(du, h, c, weekMatch), all: period(du, h, c, all) });
   for (const ray of [...rays].sort((a, b) => a.localeCompare(b))) {
     if (options.rayFilter && ray !== options.rayFilter) continue;
-    const folders = new Set([path.join(root, ray).replace(/[:\\/]/g, "-")]);
+    const folders = new Set([path.join(root, ray).replace(/[:\\/]/g, "-"), `C--Rays-${ray}`]);
     const buckets = new Map<string, Counts>(), seen = new Set<string>();
     for (const folder of folders) {
       const dir = path.join(options.claudeProjectsDir, folder);

@@ -1,0 +1,1221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0E1621">
+<title>Rays</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<style>::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#2c3446;border-radius:8px;border:2px solid transparent;background-clip:padding-box}::-webkit-scrollbar-thumb:hover{background:#3d4862;background-clip:padding-box}*{scrollbar-width:thin;scrollbar-color:#2c3446 transparent}
+  :root {
+    --ink: #0E1621; --row: #132033; --rule: #22344A; --text: #E3EAF2; --soft: #B6C3D1; --mute: #7C8FA4; --dim: #4A5D73;
+    --busy: #F3B64C; --done: #4CC2B4; --hot: #F07A5A;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--ink); color: var(--text);
+    font: 400 14px/1.35 "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+  main { max-width: 1600px; margin: 0 auto; }
+  section { display: grid; grid-template-columns: 112px minmax(0, 1.2fr) minmax(0, 1.6fr) minmax(205px, 1fr) 150px;
+    grid-template-areas: "ray state next handoffs use"; gap: 6px 18px; align-items: start;
+    padding: 12px 18px; background: var(--row); border-bottom: 1px solid var(--rule); }
+  .ray { grid-area: ray; font-size: 17px; font-weight: 500; color: var(--mute); padding-top: 1px; white-space: nowrap; }
+  /* Full text, wrapped (owner 24 Nov: "even that cuts after few words"). */
+  .state { grid-area: state; font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--mute); overflow-wrap: anywhere; }
+  .busy .ray { color: var(--text); }
+  .cache { margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .cache.on { color: var(--done); }
+  .restart { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .restart.bad { color: #e5534b; }
+  .pips.low { box-shadow: inset 2px 0 0 #e5534b; padding-left: 6px; }
+  .busy .state { color: var(--busy); }
+  .stale .ray, .stale .state { color: var(--dim); }
+  .needs-attention .state { color: var(--hot); }
+  .dot { display: none; width: 8px; height: 8px; border-radius: 50%; background: var(--busy); margin-right: 7px; vertical-align: 2px; }
+  .busy .dot { display: inline-block; }
+  @media (prefers-reduced-motion: no-preference) { .busy .dot { animation: beat 1.4s ease-in-out infinite; } }
+  @keyframes beat { 50% { opacity: .2; } }
+
+  .next { grid-area: next; min-width: 0; }
+  .next ol { margin: 0; padding: 0; list-style: none; color: var(--mute); padding-top: 3px; }
+  .next li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .next li:first-child { color: var(--soft); }
+  details { margin-top: 3px; color: var(--mute); }
+  summary { cursor: pointer; list-style: none; color: var(--dim); width: max-content; }
+  summary::-webkit-details-marker { display: none; }
+  summary:hover, details[open] summary { color: var(--mute); }
+  details ul { margin: 3px 0 0; padding: 0; list-style: none; }
+  details li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .handoffs { grid-area: handoffs; min-width: 0; }
+  .pips { display: flex; gap: 12px; padding-top: 4px; color: var(--mute); font-size: 14px; }
+  .handoff-list { display: grid; gap: 2px; margin: 6px 0 0; padding: 0; list-style: none; min-width: 0; }
+  .handoff-entry { display: grid; grid-template-columns: 7px minmax(0, 1fr) auto 14px 21px;
+    gap: 5px; align-items: center; min-height: 22px; min-width: 0; font-size: 12px; }
+  .handoff-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--busy); }
+  .handoff-entry.done .handoff-dot { background: var(--done); }
+  .handoff-entry.failed .handoff-dot { background: var(--hot); }
+  .handoff-name { display: block; min-width: 0; overflow: hidden; white-space: nowrap;
+    text-overflow: ellipsis; color: var(--soft); text-decoration: none; }
+  a.handoff-name:hover { color: var(--text); text-decoration: underline; }
+  .handoff-entry.failed .handoff-name { color: var(--hot); }
+  .handoff-no-reply { color: var(--dim); cursor: default; }
+  .handoff-time { color: var(--mute); white-space: nowrap; }
+  .handoff-mark { text-align: center; color: var(--mute); font-weight: 600; }
+  .handoff-mark.applied { color: var(--done); }
+  .handoff-mark.amber { color: var(--busy); }
+  .handoff-folder { border: 0; padding: 0; width: 21px; height: 22px;
+    display: inline-grid; place-items: center; color: var(--mute); background: transparent; cursor: pointer; }
+  .handoff-folder:hover { color: var(--text); }
+  .handoff-folder svg { width: 15px; height: 15px; fill: none; stroke: currentColor;
+    stroke-width: 1.5; stroke-linejoin: round; }
+
+  .pip { display: inline-flex; align-items: center; gap: 5px; }
+  .pip i { width: 8px; height: 8px; border-radius: 50%; }
+  .pip.r i { background: var(--busy); }
+  .pip.q i { border: 1.5px solid var(--mute); }
+  .pip.d i { background: var(--done); }
+  .pip.zero { opacity: .3; }
+
+  .use { grid-area: use; display: grid; grid-template-columns: 1fr 40px; gap: 5px 8px; align-items: center; padding-top: 6px;
+    font-size: 12px; color: var(--mute); text-align: right; }
+  .bar { height: 3px; background: var(--rule); border-radius: 2px; overflow: hidden; }
+  .bar b { display: block; height: 100%; background: var(--done); }
+  .bar.warm b { background: var(--busy); }
+  .bar.hot b { background: var(--hot); }
+  :focus-visible { outline: 2px solid var(--busy); outline-offset: 2px; }
+
+  #top { max-width: 1600px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 28px;
+    padding: 14px 18px; border-bottom: 1px solid var(--rule); }
+  .meter { display: grid; grid-template-columns: auto 120px; gap: 2px 10px; align-items: center; }
+  .meter strong { font-size: 22px; font-weight: 600; color: var(--text); }
+  .meter span { color: var(--mute); font-size: 13px; grid-column: 1 / -1; }
+  .fig strong { font-size: 22px; font-weight: 600; margin-right: 5px; }
+  .fig { color: var(--mute); white-space: nowrap; }
+  .fig.bad strong { color: var(--hot); }
+  .fig.on strong { color: var(--busy); }
+  nav { margin-left: auto; display: flex; gap: 18px; font-size: 16px; }
+  nav a { color: var(--soft); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  nav a:hover { color: var(--text); border-color: var(--mute); }
+  .usd { color: var(--mute); margin-left: auto; }
+  #codex { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 13px;
+    padding-left: 16px; border-left: 1px solid var(--rule); }
+  .codex-caller { display: inline-flex; gap: 5px; align-items: center;
+    color: var(--mute); white-space: nowrap; font-size: 12px; }
+  .codex-caller b { color: var(--text); font-size: 15px; font-weight: 500; }
+  .codex-track { display: block; width: 35px; height: 3px; background: var(--rule);
+    border-radius: 2px; overflow: hidden; }
+  .codex-track i { display: block; height: 100%; background: var(--done); }
+  .codex-state { font-size: 13px; font-weight: 700; color: var(--done); }
+  .codex-state.waiting { color: var(--soft); }
+  .codex-state.paused { color: var(--hot); }
+  .codex-cap { font-size: 11px; color: var(--mute); }
+  .codex-rate { font-size: 19px; font-weight: 600; color: var(--soft); }
+  .codex-alert { color: var(--hot); font-weight: 600; white-space: nowrap; }
+  .codex-alert i { display: inline-block; height: 7px; width: 7px;
+    border-radius: 50%; background: var(--hot); margin-right: 5px; }
+  #truth-banner[hidden] { display: none; }
+  #mission .mission-box { display: block !important; grid-template-columns: none !important; max-width: 1600px; margin: 0 auto; padding: 14px 18px 16px; border-bottom: 1px solid #2a2f3a; }
+  .m-head { display: flex !important; gap: 12px; align-items: baseline; }
+  .m-result { flex: 1; min-width: 0; }
+  #mission .m-why, #mission .m-total, #mission .m-rays { width: auto; }
+  .m-label { color: #4fc3a1; font-weight: 700; }
+  .m-result { font-size: 17px; }
+  .m-why { color: var(--soft); font-size: 13px; margin: 4px 0 10px 76px; }
+  .m-total { display: grid; grid-template-columns: minmax(200px, 520px) auto 1fr; gap: 12px; align-items: center; margin-left: 76px; }
+  .m-total b { font-size: 22px; }
+  .m-bar { display: flex; height: 10px; background: #3a2f2f; border-radius: 5px; overflow: hidden; }
+  .m-used { background: #4fc3a1; } .m-skip { background: #6b7a90; }
+  .m-rays { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px 24px; margin: 12px 0 0 76px; }
+  .m-ray { display: grid; grid-template-columns: 90px 1fr 90px; gap: 8px; align-items: center; font-size: 13px; }
+  .m-ray .m-bar { height: 6px; }
+  .m-n { color: var(--soft); }
+  .next .tracker-label, .next .tracker-label ~ * { display: none; }
+  .rpm { margin: 6px 0 4px; display: grid; gap: 6px; }
+  .pstrip { display: grid; gap: 4px; margin: 4px 0 12px; padding: 8px 10px; border: 1px solid #2a2f3a; border-radius: 6px; }
+  .pstrip-row { display: grid; grid-template-columns: minmax(160px, 260px) minmax(120px, 360px) 48px; gap: 10px; align-items: center; }
+  .pstrip-row .rpm-bar { margin-top: 0; }
+  .pstrip-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pstrip-none, .pstrip-n { color: var(--soft); font-size: 12px; }
+  .rpm > div { display: grid; grid-template-columns: 72px 1fr; gap: 8px; }
+  .rpm b { color: var(--soft); font-weight: 600; }
+  .rpm-result span { font-size: 15px; }
+  .rpm-bar { height: 6px; background: #2a2f3a; border-radius: 3px; overflow: hidden; max-width: 360px; margin-top: 6px; }
+  .rpm-bar i { display: block; height: 100%; background: #4fc3a1; }
+  .rpm-count { font-size: 12px; color: var(--soft); }
+  .rpm ol { margin: 6px 0 0; padding-left: 20px; }
+  .rpm li { margin: 2px 0; }
+  .rpm li.done { color: var(--soft); text-decoration: line-through; }
+  .rpm li.doing { color: #f5c26b; }
+  .rpm li.doing::after { content: "  90 now"; }
+  #truth-banner { max-width: 1600px; margin: 0 auto; padding: 8px 18px; color: var(--soft); background: transparent; border-bottom: 0; font-size: 13px; }
+  #truth-banner ul { margin: 4px 0 0; padding-left: 20px; max-height: 180px; overflow-y: auto; }
+  .ray-now { display: block; color: var(--soft); font-size: 12px; margin-top: 4px; }
+  .disk-chip { color: var(--soft); font-weight: 600; white-space: nowrap;
+    padding: 3px 9px; border: 1px solid var(--rule); border-radius: 5px; }
+  .disk-chip.amber { color: var(--busy); border-color: var(--busy); }
+  .keeper-chip { color: var(--hot); font-weight: 600; margin-right: 14px; }
+  .disk-chip.red { color: var(--hot); border-color: var(--hot); }
+  @media (max-width: 900px) {
+    #top { padding: 12px 16px; gap: 8px 20px; }
+    .meter { grid-template-columns: auto 80px; }
+    nav { margin-left: 0; width: 100%; }
+  }
+
+  @media (max-width: 900px) {
+    section { grid-template-columns: minmax(0, 1fr); grid-template-areas: "ray" "state" "next" "handoffs" "use";
+      padding: 12px 16px; gap: 4px 12px; }
+    .handoff-list { margin-top: 4px; }
+    .handoff-entry { grid-template-columns: 7px minmax(0, 1fr) 45px 14px 23px; gap: 6px; }
+    .handoff-folder { width: 23px; min-height: 25px; }
+
+    .use { grid-template-columns: 1fr 40px 1fr 40px; padding-top: 4px; }
+    .next li + li { display: none; }
+    details li { display: block !important; }
+  }
+  .now { color: var(--dim); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 3px; }
+  .now::before { content: "↳ "; font-style: normal; }
+  .trk { margin: 0; padding: 3px 0 0; list-style: none; }
+  .trk li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto auto; gap: 6px; align-items: center; color: var(--mute);
+    border-radius: 3px; }
+  .trk li:first-child .tt { color: var(--soft); }
+  .trk .grip { cursor: grab; touch-action: none; user-select: none; color: var(--dim); text-align: center; font-size: 15px; line-height: 1.2; }
+  .trk .grip:hover { color: var(--soft); }
+  .trk .tt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .trk .st { font-size: 12px; color: var(--dim); white-space: nowrap; }
+  .trk .st.running { color: var(--busy); } .trk .st.waiting { color: var(--hot); } .trk .st.new { color: var(--done); }
+  .trk .age { font-size: 12px; color: var(--hot); white-space: nowrap; }
+  .trk li.drag { background: var(--rule); outline: 1px solid var(--busy); }
+  .trk li.drag .grip { cursor: grabbing; color: var(--busy); }
+  .trk-saved { font-size: 12px; color: var(--done); }
+  @media (max-width: 900px) { .trk .grip { font-size: 20px; padding: 4px 0; } .trk li + li { display: grid !important; } }
+  .pop { position: fixed; z-index: 50; max-width: min(460px, calc(100vw - 32px)); padding: 10px 12px; background: var(--row);
+    color: var(--text); border: 1px solid var(--rule); border-radius: 6px; box-shadow: 0 6px 24px rgba(0,0,0,.45);
+    font-size: 14px; line-height: 1.45; white-space: normal; overflow-wrap: anywhere; pointer-events: none; display: none; }
+  .pop.on { display: block; }
+  .pop .ph { color: var(--dim); font-size: 12px; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .pop .pl { margin-top: 6px; color: var(--soft); } .pop .pl b { color: var(--mute); font-weight: 500; }
+  .trk li.wrap .tt { white-space: normal; }
+  /* Goal-first card. The existing tracker controls and header meters remain intact. */
+  section.ray-card { grid-template-columns: 175px minmax(0,1fr) 160px;
+    grid-template-areas: "ray state use" "goals goals goals" "next next next"; gap: 8px 18px; }
+  .ray-card .ray { font-size: 19px; white-space: normal; color: var(--text); }
+  .ray-card .state { font-size: 16px; line-height: 1.35; white-space: normal; display: block; overflow: visible; color: var(--soft); overflow-wrap: anywhere; }
+  .ray-card.busy .state { color: var(--busy); }
+  .ray-card.needs-attention .state { color: var(--hot); }
+  .ray-card .use { padding-top: 3px; }
+  .handoff-summary { display: flex; margin-top: 6px; gap: 12px; font-size: 12px; }
+  .handoff-summary.low { border-left: 2px solid var(--hot); padding-left: 6px; }
+  .shelf-light { display: block; margin-top: 7px; padding: 4px 6px; border: 1px solid var(--rule);
+    border-radius: 4px; font-size: 12px; line-height: 1.4; color: var(--mute); overflow-wrap: anywhere; }
+  .shelf-light.red { color: #fff; border-color: var(--hot); background: #6b2425; font-weight: 700; }
+  .shelf-light.amber { color: var(--busy); border-color: #a06e20; }
+  .shelf-light.green { color: var(--done); }
+  .shelf-light.unknown { border-color: var(--hot); color: var(--hot); }
+  .machine-shelf { border: 1px solid var(--rule); border-radius: 4px; padding: 6px 10px; font-size: 15px; }
+  .machine-shelf strong { font-size: 20px; }
+  .machine-shelf.red, .machine-shelf.unknown { color: var(--hot); border-color: var(--hot); }
+  .machine-shelf.green { color: var(--done); }
+  .goal-older { margin: 4px 0 0 16px; }
+  .goal-older summary { color: var(--soft); }
+  .goal-older .goal-jobs { margin-left: 0; }
+  .panel-text { white-space: normal; overflow-wrap: anywhere; line-height: 1.55; }
+  .panel-text pre { font: 12px/1.5 ui-monospace,monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .panel-text code { background: #24364b; padding: 1px 4px; }
+  .panel-text h1,.panel-text h2,.panel-text h3 { color: var(--text); }
+  .panel-text a { color: var(--done); }
+  .panel-collapse { margin: 6px 0; }
+  .panel-collapse summary { color: var(--soft); font-size: 13px; }
+  .panel-files { margin: 4px 0; padding-left: 0; list-style: none; font: 12px/1.6 ui-monospace,monospace; }
+  .panel-files li { overflow-wrap: anywhere; }
+  .panel-files small { color: var(--mute); }
+  .panel-actions { display: flex; gap: 9px; flex-wrap: wrap; margin: 10px 0; }
+  .panel-actions button { border: 1px solid var(--rule); border-radius: 4px; padding: 7px 12px; cursor: pointer;
+    background: var(--row); color: var(--text); font: inherit; }
+  .panel-actions .writeoff { border-color: var(--hot); color: var(--hot); }
+
+  .goals { grid-area: goals; display: grid; gap: 5px; min-width: 0; }
+  .goal-row { border-top: 1px solid var(--rule); padding: 7px 0 5px; min-width: 0; }
+  .goal-open { padding: 3px 0; border: 0; background: transparent; color: var(--text); font-weight: 500; font-size: 16px; line-height: 1.3; font-family: inherit; cursor: pointer; display: flex; align-items: baseline; gap: 12px; text-align: left; width: 100%; }
+  .goal-open:hover .goal-title, .handoff-view:hover .job-name { text-decoration: underline; }
+  .goal-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .goal-top .goal-open { flex: 1; min-width: 0; }
+  .check-run { flex: none; border: 1px solid var(--rule); color: var(--soft); border-radius: 3px;
+    background: transparent; font: inherit; font-size: 12px; cursor: pointer; padding: 2px 7px; }
+  .check-run:hover:not(:disabled) { color: var(--text); border-color: var(--mute); }
+  .check-run:disabled { opacity: .35; cursor: default; }
+  .check-recent { padding: 1px 0 4px 16px; font-size: 12px; color: var(--mute); overflow-wrap: anywhere; }
+
+  .goal-title { font-weight: 600; }
+  .check-badge { color: var(--mute); font-size: 12px; border: 1px solid var(--rule); padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+  .check-badge.pass { border-color: var(--done); color: var(--done); }
+  .check-badge.fail { border-color: var(--hot); color: var(--hot); }
+  .check-badge.stale { border-color: var(--busy); color: var(--busy); }
+  .check-badge.manual { border-color: var(--mute); color: var(--soft); }
+  .check-badge.never { border-color: var(--rule); color: var(--dim); }
+  .check-dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px;
+    border-radius: 50%; vertical-align: 1px; background: var(--dim); }
+  .check-badge.pass .check-dot { background: var(--done); }
+  .check-badge.fail .check-dot { background: var(--hot); }
+  .check-badge.stale .check-dot { background: var(--busy); }
+  .check-badge.manual .check-dot { background: var(--mute); }
+  .check-badge.never .check-dot { background: transparent; border: 1px solid var(--dim); }
+  .goal-line { display: grid; grid-template-columns: 37px minmax(0,1fr); gap: 7px; padding: 2px 0 2px 16px;
+    color: var(--soft); font-size: 13px; line-height: 1.42; overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; }
+  .goal-line b { color: var(--mute); font-weight: 500; }
+  .goal-jobs { margin: 4px 0 0 16px; padding: 0; list-style: none; }
+  .job-diff { display: block; margin: 0 0 2px 22px; font-size: 13px; color: var(--done); text-decoration: none; } .job-diff:hover { text-decoration: underline; }
+  .goal-job { margin: 2px 0; }
+  .handoff-view { display: flex; gap: 8px; width: 100%; align-items: baseline; text-align: left; cursor: pointer;
+    padding: 3px 6px; background: #19283c; border: 1px solid transparent; border-radius: 4px;
+    color: var(--soft); font: inherit; font-size: 13px; }
+  .handoff-view:hover { border-color: var(--rule); }
+  .handoff-detail { border: 0; padding: 0; color: var(--soft); background: transparent; cursor: pointer; font: inherit; }
+  .handoff-view a.job-name { color: var(--soft); text-decoration: underline; }
+  .handoff-view a.job-name:hover { color: var(--text); }
+  .goal-edit { margin: 8px 0; background: var(--row); color: var(--text); border: 1px solid var(--rule); padding: 6px 10px; cursor: pointer; }
+  #goal-editor { display: grid; gap: 8px; }
+  #goal-editor label { display: grid; gap: 4px; color: var(--soft); }
+  #goal-editor textarea { width: 100%; min-height: 55px; padding: 8px; resize: vertical; background: var(--ink); color: var(--text); border: 1px solid var(--rule); }
+  .job-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--mute); }
+  .goal-job.running .job-dot, .goal-job.sending .job-dot { background: var(--busy); }
+  .goal-job.applied .job-dot, .goal-job.done .job-dot { background: var(--done); }
+  .goal-job.failed .job-dot, .goal-job.dead .job-dot, .goal-job.done-zip-missing .job-dot { background: var(--hot); }
+  .goal-job.superseded { opacity: .58; }
+  .goal-job.stale .job-dot, .goal-job.unapplied-late .job-dot { background: #d5a354; }
+  .job-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .job-state { color: var(--mute); font-size: 12px; white-space: nowrap; }
+  .goal-job.failed .job-state, .goal-job.dead .job-state { color: var(--hot); }
+  .goal-job.applied .job-state { color: var(--done); }
+  .goal-job time { white-space: nowrap; color: var(--mute); min-width: 48px; text-align: right; }
+  .job-reason { color: var(--mute); padding-left: 20px; font-size: 12px; overflow-wrap: anywhere; }
+  .jobs-more { display: block; margin: 4px 0 0 16px; font-size: 12px; color: var(--dim, #8a94a6); text-decoration: none; }
+  .other-jobs { border-top: 1px solid var(--rule); padding: 7px 0; }
+  .other-title, .tracker-label { color: var(--mute); font-weight: 500; font-size: 13px; }
+  .ray-card .next { border-top: 1px solid var(--rule); padding-top: 7px; }
+  .ray-card .trk { display: grid; gap: 3px; }
+  .ray-card .trk .tt { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+  .stopped-row { display: block; padding: 12px 18px; border-bottom: 1px solid var(--rule); background: var(--row); margin: 0; }
+  .stopped-row summary { color: var(--soft); cursor: pointer; display: flex; gap: 10px; align-items: center; }
+  .stopped-head { padding: 10px 18px 4px; color: var(--mute); }
+  .stopped-meta { color: var(--mute); font-size: 0.9em; }
+  .stopped-row > div { display: flex; flex-wrap: wrap; gap: 14px; padding: 8px 0; color: var(--mute); }
+  .ray-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 5px 0; }
+  .ray-control { border: 1px solid var(--rule); border-radius: 4px; background: transparent;
+    color: var(--soft); padding: 3px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+  .ray-control:hover { background: var(--row); color: var(--text); }
+  .ray-control:disabled { opacity: .5; cursor: default; }
+  .ray-chat { border: 1px solid var(--rule); border-radius: 4px; background: transparent; color: var(--soft);
+    padding: 2px 8px; font: inherit; font-size: 12px; cursor: pointer; margin: 4px 0; }
+  .ray-chat:hover { background: var(--row); color: var(--text); }
+  .chat-bar { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--mute); margin-bottom: 10px; }
+  .chat-bar label { display: flex; gap: 5px; align-items: center; cursor: pointer; }
+  .chat-older { border: 0; background: none; color: var(--mute); text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; padding: 0; }
+  .turn { margin: 0 0 14px; line-height: 1.5; }
+  .turn .who { font-size: 11px; color: var(--mute); margin-bottom: 3px; }
+  .turn.owner .msg { background: #1B2D45; border-left: 3px solid var(--busy); padding: 8px 12px; border-radius: 4px; }
+  .turn.peer .msg { border-left: 3px solid var(--done); padding: 6px 12px; color: var(--soft); }
+  .turn.system { display: none; }
+  .show-system .turn.system { display: block; }
+  .turn.system .msg { color: var(--dim); font-size: 12px; white-space: pre-wrap; max-height: 12em; overflow: hidden; }
+  .turn .msg p { margin: 0 0 8px; } .turn .msg p:last-child { margin: 0; }
+  .turn .msg pre { background: #0A111A; padding: 8px 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; }
+  .turn .msg code { background: #0A111A; padding: 0 3px; border-radius: 3px; font-size: 12.5px; }
+  .tool { font-size: 12px; color: var(--mute); font-family: ui-monospace, Consolas, monospace; margin: 2px 0; overflow-wrap: anywhere; }
+  .tool b { color: var(--soft); font-weight: 600; } .tool.bad b { color: var(--hot); }
+  .tool .res { display: none; color: var(--dim); white-space: pre-wrap; margin: 2px 0 6px 14px; }
+  .show-system .tool .res { display: block; }
+  .stopped-entry { display: inline-flex; gap: 6px; align-items: center; }
+  .control-warning { color: var(--hot); margin: 10px 0; }
+
+  .ledger-error { color: var(--hot); margin: 6px 0; }
+  #goal-panel[hidden] { display: none; }
+  #goal-panel { position: fixed; right: 0; top: 0; bottom: 0; z-index: 80; width: min(720px, 100vw);
+    background: #101d2e; border-left: 1px solid #33455e; box-shadow: -10px 0 35px #060d17af;
+    display: flex; flex-direction: column; user-select: text; }
+  .panel-head { display: flex; align-items: center; gap: 10px; padding: 15px 20px; border-bottom: 1px solid var(--rule); }
+  .panel-head h2 { flex: 1; margin: 0; font-size: 20px; line-height: 1.3; overflow-wrap: anywhere; }
+  .panel-head button { cursor: pointer; border: 1px solid var(--rule); border-radius: 5px; background: var(--row);
+    color: var(--text); font: inherit; font-size: 18px; width: 32px; height: 32px; flex: none; }
+  #panel-body { overflow-y: auto; padding: 18px 22px 40px; user-select: text; }
+  .panel-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding-bottom: 12px; color: var(--mute); }
+  .panel-meta a { color: var(--done); text-decoration: underline; }
+  .panel-field { padding: 10px 0; border-bottom: 1px solid var(--rule); }
+  .panel-field h3 { color: var(--mute); font-size: 13px; font-weight: 500; margin: 0 0 6px; }
+  .panel-field pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); font-size: 14px; line-height: 1.55; font-family: inherit; user-select: text; }
+  .pop { pointer-events: auto; user-select: text; }
+  @media(max-width:900px) {
+    section.ray-card { grid-template-columns: minmax(0, 1fr); grid-template-areas: "ray" "state" "use" "goals" "next"; gap: 5px; }
+    .goal-open { justify-content: space-between; }
+    .goal-line, .check-recent { padding-left: 0; }
+    .goal-jobs { margin-left: 0; }
+    .ray-card .use { max-width: 350px; }
+  }
+
+  /* Decision inbox: same board palette, but images get the available width. */
+  #decision-inbox[hidden], #decisions-view[hidden], #top[hidden], #b[hidden] { display: none !important; }
+  #decision-inbox { max-width: 1600px; margin: 0 auto; border-bottom: 1px solid var(--busy);
+    background: #1b2a38; padding: 12px 18px; font-size: 17px; }
+  #decision-inbox a { color: var(--text); text-decoration: none; display: block; }
+  #decision-inbox strong { color: var(--busy); margin-right: 8px; }
+  #decision-inbox span { color: var(--soft); }
+  #decisions-view { max-width: 1600px; margin: 0 auto; padding: 20px 22px 70px; }
+  .decision-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); padding-bottom: 16px; }
+  .decision-bar a { color: var(--soft); text-decoration: none; font-size: 16px; }
+  .decision-bar h1 { font-size: 23px; font-weight: 600; margin: 0; }
+  .decision-bar .counts { margin-left: auto; color: var(--mute); font-size: 15px; }
+  .decision-nav { display: flex; gap: 12px; align-items: center; margin-top: 18px; }
+  .decision-nav button, .decision-note button, .change-answer { font: inherit; color: var(--text);
+    background: var(--row); border: 1px solid var(--rule); border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  .decision-nav button:disabled, .decision-note button:disabled { opacity: .35; cursor: default; }
+  .decision-nav span { color: var(--mute); }
+  .decision-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--mute); margin-top: 24px; }
+  .decision-status { color: var(--busy); }
+  .decision-title { font-size: clamp(23px, 3.6vw, 34px); margin: 14px 0 8px; line-height: 1.16; }
+  .decision-question { white-space: pre-wrap; font-size: 19px; color: var(--soft); margin: 0 0 24px; }
+  .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px,100%), 1fr)); gap: 12px; align-items: stretch; }
+  .choice { min-width: 0; width: 100%; border: 2px solid var(--rule); border-radius: 8px;
+    background: var(--row); color: var(--text); padding: 0 0 12px; text-align: left;
+    cursor: pointer; font: inherit; overflow: hidden; display: flex; flex-direction: column; }
+  .choice:hover:enabled, .choice:focus-visible { border-color: var(--busy); }
+  .choice:disabled { cursor: default; }
+  .choice.selected { border-color: var(--done); }
+  .choice-photos { display: grid; gap: 4px; margin-bottom: 10px; background: #0b111a; }
+  .choice-photos img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; }
+  .choice-label { display: block; padding: 2px 14px; font-size: 19px; font-weight: 600; overflow-wrap: anywhere; }
+  .choice-detail { padding: 4px 14px; color: var(--soft); font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .choice-numbers { color: var(--mute); margin-right: 8px; font-size: 13px; }
+  .choice-picked { margin: auto 14px 0; padding-top: 12px; color: var(--done); }
+  .decision-answered .choice:not(.selected) { opacity: .42; }
+  .decision-answered .choice.selected { opacity: 1; }
+  .decision-answered .decision-status { color: var(--done); }
+  .decision-note { margin-top: 20px; max-width: 720px; display: grid; gap: 9px; }
+  .decision-note label { color: var(--soft); font-size: 16px; }
+  .decision-note textarea { width: 100%; min-height: 65px; border: 1px solid var(--rule); border-radius: 6px;
+    background: var(--row); color: var(--text); font: inherit; font-size: 17px; padding: 10px; resize: vertical; }
+  .decision-note button { justify-self: start; }
+  .decision-feedback { min-height: 24px; margin-top: 12px; color: var(--hot); font-size: 16px; }
+  .decision-error { border: 1px solid var(--hot); background: var(--row); padding: 18px; margin-top: 20px; overflow-wrap: anywhere; }
+  .decision-error strong { color: var(--hot); }
+  .decision-saved { padding-top: 12px; color: var(--done); font-size: 17px; white-space: pre-wrap; }
+  @media (max-width: 700px) {
+    #decisions-view { padding: 15px 12px 50px; }
+    .choice-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 12px; }
+    .choice { flex: 0 0 min(86vw, 450px); scroll-snap-align: center; }
+    .decision-bar .counts { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<nav id="board-notification-header" style="display:flex;padding:4px 12px"></nav><header id="top"></header>
+<div id="mission"></div>
+<div id="truth-banner" role="alert" hidden></div>
+<div id="decision-inbox" hidden></div>
+<main id="b" aria-live="polite"></main>
+<div id="decisions-view" hidden>
+  <header class="decision-bar"><a href="/board">← board</a><h1>Decisions</h1><span class="counts" id="decision-tally"></span></header>
+  <div id="decision-slot" aria-live="polite"></div>
+  <div class="decision-nav"><button type="button" id="decision-prev">Previous</button><span id="decision-pos"></span><button type="button" id="decision-next">Next</button></div>
+</div>
+<aside id="goal-panel" role="dialog" aria-label="Goal or handoff details" hidden><div class="panel-head"><h2 id="panel-title"></h2><button id="panel-close" type="button" aria-label="Close panel">×</button></div><div id="panel-body"></div></aside>
+<script>
+const DECISION_TOKEN = "__DECISION_TOKEN__";
+const decisionsMode = location.pathname === "/board/decisions";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const k = (n) => n == null ? "–" : n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.round(n / 1000) + "k";
+const mins = (ms) => ms == null ? "" : ms < 3600e3 ? Math.max(1, Math.round(ms / 60e3)) + " min" : Math.round(ms / 3600e3) + " h";
+const pct = (s) => { const m = String(s || "").match(/([\d.]+)%/); return m ? Number(m[1]) : null; };
+const open = new Set();
+const checkTime = (at) => {
+  if (!at) return "never run";
+  const n = Date.parse(at);
+  return Number.isFinite(n) ? new Date(n).toLocaleString() : "invalid time";
+};
+const checkAgo = (at) => {
+  if (!at) return "never run";
+  const ms = Math.max(0, Date.now() - Date.parse(at));
+  return ms < 60e3 ? "just now" : ms < 3600e3 ? Math.floor(ms / 60e3) + "m ago"
+    : ms < 86400e3 ? Math.floor(ms / 3600e3) + "h ago"
+    : Math.floor(ms / 86400e3) + "d ago";
+};
+const checkTip = (g) => [String(g.checkState).toUpperCase(), "Last: " + checkTime(g.checkResult?.at),
+  g.checkResult?.lastLine || "No output"].join(" · ");
+
+function bar(value, max, warm, hot, text, title) {
+  const w = value == null ? 0 : Math.min(100, value / max * 100);
+  const cls = value == null ? "" : value >= hot ? "hot" : value >= warm ? "warm" : "";
+  return `<div class="bar ${cls}" title="${esc(title)}"><b style="width:${w}%"></b></div><span title="${esc(title)}">${esc(text)}</span>`;
+}
+function pip(cls, n, title) { return `<span class="pip ${cls} ${n ? "" : "zero"}" title="${esc(title)}"><i></i>${n}</span>`; }
+let perRay = {};
+const hhmm = (t) => t ? new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+const day = (t) => t ? new Date(t).toLocaleDateString([], { weekday: "short" }) + " " + hhmm(t) : "";
+function strip(o) {
+  const proxy = `${location.protocol}//${location.hostname}:5190/`;
+  const meter = (label, p, reset) => `<div class="meter" title="resets ${esc(reset)}"><strong>${label} ${p == null ? "–" : Math.round(p) + "%"}</strong>${bar(p, 100, 60, 85, "", label + " limit").replace(/<span[^>]*><\/span>$/, "")}<span>resets ${esc(reset)}</span></div>`;
+  const fig = (n, word, cls = "") => `<div class="fig ${cls}"><strong>${n}</strong>${word}</div>`;
+  return o ? meter("5h", o.fivePct, hhmm(o.fiveReset)) + meter("7d", o.sevenPct, day(o.sevenReset)) +
+    fig("$" + Math.round(o.todayUsd), "today") + fig(o.calls.toLocaleString(), "calls") +
+    fig(o.errorsHour, "errors last hour", o.errorsHour ? "bad" : "") + fig(o.live, "live", o.live ? "on" : "") +
+    `<nav><a href="/board/docs">docs</a><a href="/board/stats">stats</a><a href="/board/jobs">jobs</a><a href="/board/handoffs">handoffs</a><a href="/stream">stream</a><a href="/chat">chat</a><a href="${proxy}">requests</a></nav>` : "";
+}
+// Stopped keepers in red (heartbeat older than 12 min); nothing when all are alive.
+function keeperStrip(keepers) {
+  const dead = (keepers || []).filter((k) => !k.alive);
+  if (!dead.length) return "";
+  const age = (k) => k.ageMs == null ? "no heartbeat" : mins(k.ageMs);
+  return `<span class="keeper-chip">Keepers stopped: ${dead.length} of ${keepers.length} (${dead.map((k) => esc(k.ray) + " " + age(k)).join(", ")})</span>`;
+}
+function diskStrip(disk) {
+  if (!disk || !Number.isFinite(disk.freeBytes)) return "";
+  const gb = disk.freeBytes / 1e9;
+  const cls = gb < 20 ? "red" : gb < 50 ? "amber" : "";
+  const growers = disk.top.filter((f) => Number.isFinite(f.growth24h) && f.growth24h > 0)
+    .sort((a, b) => b.growth24h - a.growth24h).slice(0, 3);
+  const tip = growers.length ? "Top growers (24h): " +
+    growers.map((f) => f.path + " +" + (f.growth24h / 1e9).toFixed(2) + " GB").join("; ")
+    : "No measured 24h growth available";
+  return `<span class="disk-chip ${cls}" title="${esc(tip)}" aria-label="Disk free ${gb.toFixed(1)} GB">disk ${gb.toFixed(1)} GB</span>`;
+}
+function codexStrip(data, gate) {
+  // A caller that never made a call (the public sample "example-cli") is not shown.
+  if (data) data = { ...data, callers: (data.callers || []).filter((c) => c.firstAt || c.day > 0) };
+  if (!data || !data.callers.length) return "";
+  const max = Math.max(1, ...data.callers.map((c) => c.oneHour));
+  const gateByName = new Map((gate?.callers || []).map((c) => [c.name, c]));
+  const callers = data.callers.map((c) => {
+    const g = gateByName.get(c.name);
+    const mark = g ? `<span class="codex-state ${g.state}" title="${esc(g.state)} ${g.leases} leases">${g.state === "running" ? "●" : g.state === "waiting" ? "◐" : "■"}</span><span class="codex-cap" title="calls/hour cap">${g.cap}/h</span>` : "";
+    return `<span class="codex-caller" title="${esc(c.name)}: ${c.oneHour}/1h ${c.fiveHours}/5h ${c.day}/24h">` +
+    `${esc(c.name)}<span class="codex-track"><i style="width:${Math.max(0, Math.min(100, c.oneHour / max * 100))}%"></i></span>` +
+    `<b>${c.oneHour}</b>${mark}</span>`;
+  }).join("");
+  const rate = `<span class="codex-rate" title="Codex calls per hour">${data.totals.callsPerHour}/h</span>`;
+  const warning = data.warning && data.warningAt != null
+    ? `<span class="codex-alert" title="Codex limit (estimated or observed)"><i></i>limit ~${hhmm(data.warningAt)}</span>` : "";
+  return `<div id="codex" aria-label="Codex calls">${callers}${rate}${warning}</div>`;
+}
+/** Prompt cache: a filled dot and the minutes it stays warm, a hollow dot once cold (1 h TTL after the last call). */
+function restarted(r) {
+  if (!r) return "";
+  const min = Math.floor((Date.now() - r.at) / 60000);
+  const ago = min < 60 ? `${min}m` : min < 1440 ? `${Math.floor(min / 60)}h` : `${Math.floor(min / 1440)}d`;
+  return `<span class="restart${r.ok ? "" : " bad"}" title="restarted fresh ${ago} ago: ${esc(r.reason)}">↻${ago}</span>`;
+}
+function cache(left) {
+  if (left == null) return "";
+  return left > 0
+    ? `<span class="cache on" title="prompt cache warm: ${left} min left">●${left}m</span>`
+    : `<span class="cache" title="prompt cache cold">○</span>`;
+}
+function handoffLine(job, ray) {
+  const cls = esc(job.state);
+  const why = job.state === "superseded" ? job.supersedeReason : job.state === "failed" ? job.failureReason : null;
+  const minutes = Number.isFinite(job.minutes) ? `${Math.round(job.minutes * 10) / 10}m` : "–";
+  const title = validConversation(job.conversationUrl)
+    ? `<a class="job-name" href="${esc(job.conversationUrl)}" target="_blank" rel="noopener noreferrer">${esc(job.name)}</a>`
+    : `<span class="job-name">${esc(job.name)}</span>`;
+  return `<li class="goal-job ${cls}"><div class="handoff-view"><span class="job-dot"></span><button type="button" class="handoff-detail" data-ray="${esc(ray)}" data-job="${esc(job.name)}" aria-label="${esc("Details: " + job.name)}">details</button>${title}<span class="job-state">${esc(job.state)}</span><time>${esc(minutes)}</time></div>${job.replyDiff?.link ? `<a class="job-diff" href="${esc(job.replyDiff.link)}" target="_blank" rel="noopener">+${esc(job.replyDiff.plus)} −${esc(job.replyDiff.minus)} in ${esc(job.replyDiff.files)} files · diff</a>` : ""}${why ? `<div class="job-reason">${esc(why)}</div>` : ""}</li>`;
+}
+function goalsMarkup(c) {
+  const groups = new Map((c.groups || []).map((g) => [g.goalId, g.jobs]));
+  // Every handoff stays under its goal. Older closed jobs expand here, not on another page.
+  const live = new Set(["running", "sending", "queued", "waiting", "stale", "dead"]);
+  const newest = (a, b) => String(b.finishedAt || "").localeCompare(String(a.finishedAt || ""));
+  const jobs = (id) => {
+    const list = groups.get(id) || [];
+    const active = list.filter((j) => live.has(j.state));
+    const finished = list.filter((j) => !live.has(j.state)).sort(newest);
+    const shown = [...active, ...finished.slice(0, 8)];
+    const older = finished.slice(8);
+    if (!list.length) return "";
+    // Owner 24 Nov ("still have no idea what im looking at"): one plain line per goal; the job list opens on click.
+    const n = (states) => list.filter((j) => states.includes(j.state)).length;
+    const working = active.length, used = n(["applied"]), waiting = n(["done", "unapplied-late"]), lost = n(["failed", "dead", "stale", "done-zip-missing"]);
+    const parts = [working && `${working} working on it`, waiting && `${waiting} back, not used yet`, used && `${used} used`, lost && `${lost} lost`].filter(Boolean);
+    return `<details class="goal-older goal-handoffs"><summary>Handoffs: ${parts.join(" · ") || "none open"}</summary><ul class="goal-jobs">${shown.map((j) => handoffLine(j, c.ray)).join("")}</ul>` +
+      (older.length ? `<details class="goal-older"><summary>+${older.length} older</summary><ul class="goal-jobs">${older.map((j) => handoffLine(j, c.ray)).join("")}</ul></details>` : "") + `</details>`;
+  };
+  // Progress strip (owner 24 Nov: "what i want to have is clarity and progress"): one bar per goal, at a glance.
+  const planOf = (g) => String(g.plan || "").split("\n").filter((l) => /^\s*(?:[-*+]\s*)?\[( |x|X|~)\]/.test(l));
+  const strip = (c.goals || []).map((g) => {
+    const st = planOf(g), d = st.filter((l) => /\[(x|X)\]/.test(l)).length, pct = st.length ? Math.round(100 * d / st.length) : null;
+    return `<div class="pstrip-row"><span class="pstrip-name" title="${esc(g.result || g.title)}">#${esc(g.id)} ${esc(g.result || g.title)}</span>${pct === null ? `<span class="pstrip-none">no plan yet</span>` : `<span class="rpm-bar"><i style="width:${pct}%"></i></span><span class="pstrip-n">${d}/${st.length}</span>`}</div>`;
+  }).join("");
+  const rows = (c.goals || []).map((g) => {
+    const runable = ["run", "http", "file"].includes(g.checkResult?.kind);
+    const running = !!g.checkResult?.running;
+    const noCheck = g.checkState === "never" && !g.checkResult?.kind;
+    return `<article class="goal-row">
+    <div class="goal-top">
+      <button type="button" class="goal-open" data-ray="${esc(c.ray)}" data-goal="${esc(g.id)}">
+        <span class="goal-title">Result #${esc(g.id)}${g.result ? `: ${esc(g.result)}` : `: ${esc(g.title)}`}</span>
+        <span class="check-badge ${esc(g.checkState)}" title="${esc(checkTip(g))}">
+          ${noCheck ? "" : `<i class="check-dot"></i>${esc(String(g.checkState) === "pass" ? "works" : String(g.checkState) === "fail" ? "broken" : String(g.checkState))}`}</span></button>
+      <button type="button" class="check-run" data-ray="${esc(c.ray)}" data-goal="${esc(g.id)}"
+        ${!runable || running ? "disabled" : ""} title="${esc(runable ? checkTip(g) : "No automatic check declared")}">${running ? "running…" : "run"}</button>
+    </div>
+    ${noCheck ? "" : `<div class="check-recent" title="${esc(checkTip(g))}">${esc(checkAgo(g.checkResult?.at)) + " · " + esc(g.checkResult?.lastLine || "no output")}</div>`}
+    ${g.plan || g.result ? rpm(g) : g.want ? `<div class="goal-line"><b>Goal</b><span>${esc(g.want)}</span></div>` : ""}
+    ${g.now ? `<div class="goal-line"><b>Where</b><span>${esc(g.now)}</span></div>` : ""}
+    ${g.next ? `<div class="goal-line"><b>Next</b><span>${esc(g.next)}</span></div>` : ""}
+    ${jobs(g.id)}</article>`;
+  }).join("");
+  const other = groups.get(null)?.length ? `<div class="other-jobs"><div class="other-title">other</div>${jobs(null)}</div>` : "";
+  return `<div class="goals"><div class="pstrip">${strip}</div>${rows}${other}${c.ledgerError ? `<p class="ledger-error">${esc(c.ledgerError)}</p>` : ""}</div>`;
+}
+// RPM block (owner 24 Nov: "still doesnt look like RPM"): the result, why, and the plan as a checklist with progress.
+function rpm(g) {
+  const steps = String(g.plan || "").split("\n").map((l) => l.replace(/^[-*+]\s*/, "")).filter(Boolean)
+    .map((l) => { const m = /^\[( |x|X|~)\]\s*(.*)$/.exec(l); return m ? { done: m[1].toLowerCase() === "x", doing: m[1] === "~", text: m[2] } : { done: false, doing: false, text: l }; });
+  const done = steps.filter((s) => s.done).length;
+  const pct = steps.length ? Math.round(100 * done / steps.length) : 0;
+  return `<div class="rpm">
+    ${g.result ? "" : `<div class="rpm-result"><b>Result</b><span>${esc(g.want || "")}</span></div>`}
+    ${g.purpose ? `<div class="rpm-purpose"><b>Purpose</b><span>${esc(g.purpose)}</span></div>` : ""}
+    ${steps.length ? `<div class="rpm-plan"><b>Plan</b><div><div class="rpm-bar"><i style="width:${pct}%"></i></div><span class="rpm-count">${done} of ${steps.length} steps done</span>
+      <ol>${steps.map((s) => `<li class="${s.done ? "done" : s.doing ? "doing" : ""}">${esc(s.text)}</li>`).join("")}</ol></div></div>` : ""}
+  </div>`;
+}
+// The one mission on top (owner 24 Nov: "focus just one thing ... apply all of hundred missed handoffs and so i can watch clearly whats going as per RPM").
+function mission(d) {
+  const used = new Set(["applied"]), skipped = new Set(["superseded"]), waiting = new Set(["done", "unapplied-late", "done-zip-missing"]), working = new Set(["running", "sending", "queued", "waiting"]);
+  const per = (d.cells || []).map((c) => {
+    const jobs = (c.groups || []).flatMap((g) => g.jobs || []);
+    const n = (set) => jobs.filter((j) => set.has(j.state)).length;
+    return { ray: c.name || c.ray, used: n(used), skipped: n(skipped), waiting: n(waiting), working: n(working) };
+  }).filter((r) => r.used + r.skipped + r.waiting + r.working > 0);
+  const T = per.reduce((a, r) => ({ used: a.used + r.used, skipped: a.skipped + r.skipped, waiting: a.waiting + r.waiting, working: a.working + r.working }), { used: 0, skipped: 0, waiting: 0, working: 0 });
+  const total = T.used + T.skipped + T.waiting, pct = total ? Math.round(100 * (T.used + T.skipped) / total) : 0;
+  const bar = (r) => { const t = r.used + r.skipped + r.waiting || 1; return `<span class="m-bar"><i class="m-used" style="width:${100 * r.used / t}%"></i><i class="m-skip" style="width:${100 * r.skipped / t}%"></i></span>`; };
+  return `<section class="mission-box">
+    <div class="m-head"><span class="m-label">Mission</span><span class="m-result">Every handoff reply ChatGPT sent back is used or set aside with a reason, and nothing waits longer than a day.</span></div>
+    <div class="m-why">Why: we paid for every one of those answers; ideas that sit unread are wasted. Watch the bar fill.</div>
+    <div class="m-total">${bar(T)}<b>${pct}%</b><span>${T.used} used · ${T.skipped} set aside · <strong>${T.waiting} still waiting</strong> · ${T.working} being written now</span></div>
+    <div class="m-rays">${per.sort((a, b) => b.waiting - a.waiting).map((r) => `<div class="m-ray"><span class="m-name">${esc(r.ray)}</span>${bar(r)}<span class="m-n">${r.waiting ? `${r.waiting} waiting` : "all decided"}</span></div>`).join("")}</div>
+  </section>`;
+}
+function shelfLight(row, error) {
+  if (error) return `<span class="shelf-light unknown" role="alert">shelf status unavailable · ${esc(error)}</span>`;
+  if (!row) return `<span class="shelf-light unknown" role="alert">shelf status unavailable</span>`;
+  const red = row.light === "red";
+  return `<span class="shelf-light ${esc(row.light)}" role="status" title="Keeper inventory: running ${row.running}, queued ${row.queued}, shelved ${row.shelf}, floor ${row.floor}">` +
+    `${red ? "SHELF EMPTY / BELOW FLOOR · " : row.light === "amber" ? "LOW SHELF · " : "shelf OK · "}` +
+    `running ${row.running} / queued ${row.queued} / shelved ${row.shelf} / floor ${row.floor}</span>`;
+}
+function machineShelf(s) {
+  if (!s?.ready) return `<span class="machine-shelf unknown" role="status">Live count unavailable · ${esc(s?.error || "shelf loading")}</span>`;
+  const low = s.live < 15;
+  return `<span class="machine-shelf ${s.error ? "unknown" : low ? "red" : "green"}" role="status" title="Keeper running + queued across all rays"><strong>${s.live}</strong> live / target 15${s.error ? ` · ${esc(s.error)}` : ""}</span>`;
+}
+function controlsMarkup(ray, stopped = false) {
+  if (!lastBoard?.actionsEnabled) return "";
+  const actions = stopped ? ["start"] : ["stop", "restart"];
+  return `<span class="ray-controls">${actions.map((a) =>
+    `<button type="button" class="ray-control" data-ray="${esc(ray)}" data-control="${a}">${a === "restart" ? "restart fresh" : a}</button>`).join("")}</span>`;
+}
+function row(c) {
+  const a = c.activity, h = c.handoffs, share = pct(c.usage.since);
+  const hasNext = (c.goals || []).some((g) => g.next.trim());
+  const needsAttention = !a.busy && (a.ago == null || a.ago > 5 * 60e3) && hasNext;
+  const state = c.session === "stopped" ? "stopped · no active transcript" : a.busy ?
+    `running · ${a.line || "active"}` : `idle ${mins(a.ago) || "–"}${a.line ? " · last: " + a.line : ""}`;
+  const top = c.tracker.slice(0, 3), more = c.tracker.slice(3);
+  const lines = (top.length ? `<ol class="trk" data-ray="${esc(c.ray)}">${top.map(trackerLine).join("")}</ol>` : "") +
+    (more.length ? `<details data-ray="${esc(c.ray)}" ${open.has(c.ray) ? "open" : ""}><summary>+${more.length} more</summary><ol class="trk" data-ray="${esc(c.ray)}">${more.map(trackerLine).join("")}</ol></details>` : "");
+  const all = (c.groups || []).flatMap((g) => g.jobs);
+  const summary = `<div class="handoff-summary${h.low ? " low" : ""}" title="handoff counts">${pip("r", all.filter((j) => ["running", "sending", "stale", "dead"].includes(j.state)).length, "in flight")}${pip("q", all.filter((j) => ["queued", "waiting"].includes(j.state)).length, "queued")}${pip("d", all.filter((j) => ["applied", "superseded", "done", "unapplied-late", "done-zip-missing"].includes(j.state)).length, "completed")}</div>`;
+  return `<section class="ray-card ${a.busy ? "busy" : ""} ${needsAttention ? "needs-attention" : ""}" data-ray="${esc(c.ray)}">
+    <div class="ray"><span class="dot"></span>${esc(c.name || c.ray)}${cache(c.cacheLeftMin)}${restarted(c.restart)}${summary}${shelfLight(c.shelf, lastBoard?.shelf?.error)}</div>
+    <div class="state">${esc(state)}${c.now ? `<span class="ray-now" title="Latest resume Now">Now: ${esc(c.now)}</span>` : ""}</div>
+    ${controlsMarkup(c.ray)}<button type="button" class="ray-chat" data-ray="${esc(c.ray)}">chat</button>
+    <div class="use">${bar(share, 10, 4, 7, share == null ? "–" : share + "% 5h", "share of the 5-hour limit this ray used since your last message")}${bar(c.usage.ctx, 400e3, 200e3, 300e3, "ctx " + k(c.usage.ctx), "context size of the last call")}</div>
+    ${goalsMarkup(c)}
+    ${lines ? `<div class="next"><div class="tracker-label">Tracker</div>${lines}</div>` : ""}
+  </section>`;
+}
+function stoppedMarkup(stopped) {
+  if (!stopped?.length) return "";
+  // Owner 24 Nov: stopped projects stay visible, one collapsed row each; unfold one to see its goals and plans.
+  return `<div class="stopped-list"><div class="stopped-head">stopped ${stopped.length}</div>${stopped.map((r) => {
+    const key = "_stopped_" + r.ray;
+    const goals = r.goals || [];
+    const steps = goals.flatMap((g) => String(g.plan || "").split(String.fromCharCode(10)).filter((l) => /^\s*-\s*\[[ x~]\]/i.test(l)));
+    const done = steps.filter((l) => /\[x\]/i.test(l)).length, total = steps.length;
+    return `<details class="stopped-row" data-ray="${esc(key)}" ${open.has(key) ? "open" : ""}><summary><span class="stopped-entry" title="${esc(r.ray)}">${esc(r.name || r.ray)}</span> <span class="stopped-meta">${goals.length} goals${total ? ` · ${done}/${total} steps` : ""}</span>${controlsMarkup(r.ray, true)}</summary>${goalsMarkup({ ...r, groups: r.groups || [] })}</details>`;
+  }).join("")}</div>`;
+}
+const panel = document.getElementById("goal-panel");
+const panelTitle = document.getElementById("panel-title");
+const panelBody = document.getElementById("panel-body");
+let lastBoard = null;
+let panelRequest = 0;
+function showPanel(title, content) {
+  panel.hidden = false;
+  panelTitle.textContent = title;
+  panelBody.innerHTML = content;
+}
+function panelField(label, text) {
+  return text ? `<div class="panel-field"><h3>${esc(label)}</h3><pre>${esc(text)}</pre></div>` : "";
+}
+function openGoal(ray, id) {
+  const g = lastBoard?.cells?.find((c) => c.ray === ray)?.goals?.find((x) => x.id === id);
+  if (!g) return;
+  panelRequest++;
+  showPanel(`Result #${g.id}`, `<div class="panel-meta"><span class="check-badge ${esc(g.checkState)}"><i class="check-dot"></i>${esc(String(g.checkState).toUpperCase())}</span><span>${esc(checkTime(g.checkResult?.at))}</span></div>` +
+    panelField("Last output line", g.checkResult?.lastLine) + panelField("Output (last 2 KB)", g.checkResult?.output) +
+    panelField("Want", g.want) + panelField("Check", g.check) + panelField("Research", g.research) +
+    panelField("Now", g.now) + panelField("Next", g.next) +
+    (lastBoard?.editEnabled ? `<button type="button" class="goal-edit" data-ray="${esc(ray)}" data-goal="${esc(id)}">Edit GOALS.md</button>` : ""));
+}
+document.addEventListener("click", async (event) => {
+  const edit = event.target.closest?.(".goal-edit");
+  if (edit) {
+    const ray = edit.dataset.ray, id = edit.dataset.goal;
+    const goal = lastBoard?.cells?.find(c => c.ray === ray)?.goals?.find(g => g.id === id);
+    if (!goal) return;
+    const fields = ["want", "check", "research", "now", "next"];
+    const form = document.createElement("form");
+    form.id = "goal-editor";
+    form.innerHTML = fields.map(k => `<label>${k}<textarea name="${k}">${esc(goal[k])}</textarea></label>`).join("") +
+      '<button class="goal-edit" type="submit">Save to GOALS.md</button><p role="status"></p>';
+    edit.replaceWith(form);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const values = Object.fromEntries(fields.map(k => [k, form.elements.namedItem(k).value]));
+      const response = await fetch(`/api/board/rays/${encodeURIComponent(ray)}/goals/${encodeURIComponent(id)}`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(values) });
+      const answer = await response.json();
+      if (!response.ok) { form.querySelector('[role="status"]').textContent = answer.error || "Save failed"; return; }
+      await load();
+      openGoal(ray, id);
+    });
+  }
+});
+let pendingRayControl = null;
+function raySteps(plan) {
+  return (plan.steps || []).map((step, i) => {
+    if (step.kind === "command")
+      return `${i + 1}. Window action ${step.action}\nHandle: ${step.hwnd || "(new window)"}\n` +
+        `Command and exact argv:\n${JSON.stringify([step.executable, ...step.args], null, 2)}`;
+    return `${i + 1}. rays.txt: ${step.change}, atomic=${step.atomic}\nTarget: ${step.path}\n` +
+      `Temporary: ${step.tempPath}\nBefore:\n${step.before}\nAfter:\n${step.after}`;
+  }).join("\n\n");
+}
+async function openRayControl(ray, action, force = false) {
+  const token = ++panelRequest;
+  pendingRayControl = null;
+  showPanel(`${ray} · ${action}`, `<p>Reading dry run (no changes made)…</p>`);
+  try {
+    const response = await fetch(`/api/rays/${encodeURIComponent(ray)}/${action}`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ dryRun: true, force }), cache: "no-store" });
+    const preview = await response.json();
+    if (!response.ok) throw Error(preview.error || `HTTP ${response.status}`);
+    if (token !== panelRequest || panel.hidden) return;
+    pendingRayControl = preview;
+    const blocked = preview.blocked ? `<p class="control-warning" role="alert">Refused: ${esc(preview.blocked)}. ` +
+      `Only explicit force can override a live tool-call guard.</p>` : "";
+    const cooldown = preview.cooldownSeconds ? `<p>Global window cooldown: ${preview.cooldownSeconds}s remaining.</p>` : "";
+    const controls = `<div class="panel-actions">` +
+      (!preview.blocked ? `<button type="button" class="ray-confirm">Confirm ${esc(action)}</button>` : "") +
+      (preview.blocked && !force ? `<button type="button" class="ray-force-preview">Show forced dry run</button>` : "") +
+      `</div>`;
+    showPanel(`${ray} · ${action} · dry run`, `<div class="panel-meta">No changes made. Review before confirming.</div>` +
+      blocked + cooldown + panelField("Exact ordered steps", raySteps(preview)) + controls +
+      `<div id="ray-control-result" aria-live="polite"></div>`);
+  } catch (error) {
+    if (token === panelRequest) showPanel(`${ray} · ${action}`, `<p class="ledger-error" role="alert">Dry run failed: ${esc(String(error))}</p>`);
+  }
+}
+document.addEventListener("click", async (event) => {
+  const control = event.target.closest?.(".ray-control");
+  if (control && lastBoard?.actionsEnabled) {
+    openRayControl(control.dataset.ray, control.dataset.control);
+    return;
+  }
+  if (event.target.closest?.(".ray-force-preview") && pendingRayControl) {
+    const { ray, action } = pendingRayControl;
+    openRayControl(ray, action, true);
+    return;
+  }
+  const confirm = event.target.closest?.(".ray-confirm");
+  if (!confirm || !pendingRayControl || confirm.disabled) return;
+  confirm.disabled = true;
+  const plan = pendingRayControl;
+  const token = panelRequest;
+  const status = document.getElementById("ray-control-result");
+  status.textContent = "Executing confirmed steps…";
+  try {
+    const response = await fetch(`/api/rays/${encodeURIComponent(plan.ray)}/${plan.action}`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ dryRun: false, force: plan.force, planId: plan.planId }), cache: "no-store" });
+    const result = await response.json();
+    if (token !== panelRequest) return;
+    pendingRayControl = null;
+    if (!response.ok) {
+      status.innerHTML = `<p class="ledger-error" role="alert">${esc(result.error || "Failed")} · HTTP ${response.status}</p>` +
+        panelField("Details", JSON.stringify(result, null, 2));
+    } else {
+      status.innerHTML = `<p>${esc(plan.action)} completed.</p>` +
+        panelField("Executed steps", raySteps(result)) +
+        panelField("Restart-log line", JSON.stringify(result.log));
+      await load();
+    }
+  } catch (error) {
+    if (token === panelRequest) status.textContent = `Action failed: ${String(error)}`;
+  }
+});
+const validConversation = (s) => {
+  try { const u = new URL(s); return u.protocol === "https:" && ["chatgpt.com", "chat.openai.com"].includes(u.hostname) && /^\/c\/[a-zA-Z0-9-]+\/?$/.test(u.pathname); }
+  catch { return false; }
+};
+function markdownInline(text) {
+  return esc(text).replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, link) =>
+      `<a href="${link}" rel="noopener noreferrer" target="_blank">${label}</a>`);
+}
+function markdown(text) {
+  const lines = String(text).split(/\r?\n/);
+  let code = false, list = false;
+  let html = "";
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) {
+      if (list) { html += "</ul>"; list = false; }
+      html += code ? "</code></pre>" : "<pre><code>"; code = !code; continue;
+    }
+    if (code) { html += esc(line) + "\n"; continue; }
+    const item = /^\s*[-*+]\s+(.+)$/.exec(line);
+    if (item) { if (!list) { html += "<ul>"; list = true; } html += `<li>${markdownInline(item[1])}</li>`; continue; }
+    if (list) { html += "</ul>"; list = false; }
+    const heading = /^(#{1,3})\s+(.+)$/.exec(line);
+    if (heading) { const n = heading[1].length; html += `<h${n}>${markdownInline(heading[2])}</h${n}>`; }
+    else if (/^>\s?/.test(line)) html += `<blockquote>${markdownInline(line.replace(/^>\s?/, ""))}</blockquote>`;
+    else if (line.trim()) html += `<p>${markdownInline(line)}</p>`;
+  }
+  return html + (list ? "</ul>" : "") + (code ? "</code></pre>" : "");
+}
+function expandedField(label, text, rich = false) {
+  if (text == null) return panelField(label, "Not returned");
+  const content = rich ? `<div class="panel-text">${markdown(text)}</div>` : `<pre>${esc(text)}</pre>`;
+  return `<div class="panel-field"><h3>${esc(label)} · ${text.length.toLocaleString()} characters</h3>` +
+    (text.length > 6000 ? `<details class="panel-collapse"><summary>Show complete ${esc(label.toLowerCase())}</summary>${content}</details>` : content) + "</div>";
+}
+function fileTree(files) {
+  if (!files?.length) return panelField("Returned files", "No extracted files recorded");
+  return `<div class="panel-field"><h3>Returned files · ${files.length}</h3><ul class="panel-files">` +
+    files.map(f => { const depth = Math.min(10, f.relativePath.replace(/\\/g, "/").split("/").length - 1);
+      return `<li style="padding-left:${depth * 14}px">${esc(f.relativePath)} <small>(${Number(f.bytes).toLocaleString()} B)</small></li>`;
+    }).join("") + "</ul></div>";
+}
+let selectedDetail = null;
+async function openHandoff(ray, name) {
+  const job = lastBoard?.cells?.find((c) => c.ray === ray)?.groups?.flatMap((g) => g.jobs).find((x) => x.name === name);
+  if (!job) return;
+  const token = ++panelRequest;
+  selectedDetail = null;
+  showPanel(name, `<p>Loading full keeper ledger record…</p>` +
+    panelField("Summary preview (not full text)", job.promptPreview));
+  try {
+    const response = await fetch(`/api/board/rays/${encodeURIComponent(ray)}/handoffs/${encodeURIComponent(name)}`, { cache: "no-store" });
+    const detail = await response.json();
+    if (!response.ok) throw Error(detail.error || `HTTP ${response.status}`);
+    if (token !== panelRequest || panel.hidden) return;
+    selectedDetail = { ...detail, ray, name };
+    const links = [validConversation(detail.conversationUrl) ? `<a href="${esc(detail.conversationUrl)}" target="_blank" rel="noopener noreferrer">ChatGPT conversation</a>` : "",
+      detail.state === "applied" && detail.appliedCommit ? `<a href="/board/diff?ray=${encodeURIComponent(ray)}&job=${encodeURIComponent(name)}" target="_blank" rel="noopener noreferrer">Commit diff · ${esc(detail.appliedCommit)}</a>` : ""].filter(Boolean);
+    const applied = detail.marker ? `Marker: ${detail.marker}` :
+      detail.appliedCommit ? `Applied commit: ${detail.appliedCommit}` :
+      detail.supersedeReason ? `Written off: ${detail.supersedeReason}` : "Not applied or written off";
+    const actions = detail.actionsEnabled ? `<div class="panel-actions">` +
+      (detail.applyCommand ? `<button type="button" class="copy-apply">Copy apply command</button>` : "") +
+      (!detail.marker && !detail.appliedCommit && ["done", "unapplied-late", "failed", "done-zip-missing"].includes(detail.state)
+        ? `<button type="button" class="writeoff">Write off with reason</button>` : "") +
+      `</div><div id="panel-action-state" aria-live="polite"></div>` : "";
+    showPanel(name, `<div class="panel-meta"><span class="job-state ${esc(detail.state)}">${esc(detail.state)}</span><span>${esc(detail.minutes)}m</span>${links.join("")}</div>` +
+      panelField("Application / write-off", applied) + panelField("Failure", detail.failureReason) + panelField("Tested conclusion", detail.testedConclusion) +
+      actions + expandedField("Full prompt", detail.prompt) + expandedField("Full reply (Markdown)", detail.reply, true) +
+      fileTree(detail.returnedFiles) + panelField("Returned ZIP", detail.zipPath) +
+      panelField("Target repo", detail.targetRepo) +
+      (detail.diffError ? `<p class="ledger-error">${esc(detail.diffError)}</p>` : "") +
+      expandedField("Overlay diff vs target HEAD", detail.overlayDiff));
+  } catch (err) {
+    if (token === panelRequest) panelBody.insertAdjacentHTML("afterbegin", `<p class="ledger-error" role="alert">Full handoff unavailable: ${esc(String(err))}</p>`);
+  }
+}
+document.addEventListener("click", async (event) => {
+  const target = event.target.closest?.(".copy-apply,.writeoff");
+  if (!target || !selectedDetail) return;
+  const d = selectedDetail;
+  const status = document.getElementById("panel-action-state");
+  if (target.matches(".copy-apply")) {
+    try { await navigator.clipboard.writeText(d.applyCommand); status.textContent = "Apply-and-test command copied. It has not run."; }
+    catch { status.textContent = "Clipboard unavailable. Copy the command from your browser on localhost."; }
+    return;
+  }
+  const reason = prompt("Reason for writing off this handoff (required):");
+  if (reason == null) return;
+  if (!reason.trim()) { status.textContent = "A reason is required."; return; }
+  target.disabled = true;
+  try {
+    const response = await fetch(`/api/board/rays/${encodeURIComponent(d.ray)}/handoffs/${encodeURIComponent(d.name)}/writeoff`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reason }) });
+    const out = await response.json();
+    if (!response.ok) throw Error(out.error || `HTTP ${response.status}`);
+    status.textContent = `Written off: ${out.reason}`;
+    await load();
+    openHandoff(d.ray, d.name);
+  } catch (err) { status.textContent = `Write-off failed: ${String(err)}`; target.disabled = false; }
+});
+// Session chat (side panel): what the owner asked, the session's prose, one line per tool call.
+let chatState = null;
+function chatMd(text) {
+  // Escape first, then a few Markdown forms: fences, inline code, bold, links as text, paragraphs.
+  const parts = String(text).split(/```[^\n]*\n?/);
+  return parts.map((part, i) => i % 2 ? `<pre>${esc(part.replace(/\n$/, ""))}</pre>` :
+    esc(part).split(/\n{2,}/).filter((x) => x.trim()).map((para) => `<p>${para
+      .replace(/`([^`\n]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/\n/g, "<br>")}</p>`).join("")).join("");
+}
+function chatTime(at) { if (!at) return ""; const d = new Date(at); return isNaN(d) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+function turnHtml(t) {
+  const who = t.role === "owner" ? "you" : t.role === "peer" ? (t.from || "another session") : t.role === "system" ? "system" : "session";
+  const tools = (t.tools || []).map((x) => `<div class="tool${x.ok === false ? " bad" : ""}">▸ <b>${esc(x.name)}</b> ${esc(x.description || "")}${x.result ? `<div class="res">${esc(x.result)}</div>` : ""}</div>`).join("");
+  const msg = t.text ? `<div class="msg">${t.role === "system" ? esc(t.text) : chatMd(t.text)}</div>` : "";
+  return `<div class="turn ${t.role}"><div class="who">${esc(who)} · ${esc(chatTime(t.at))}</div>${msg}${tools}</div>`;
+}
+async function chatFetch(ray, before) {
+  const r = await fetch(`/api/rays/${encodeURIComponent(ray)}/chat?limit=60${before != null ? "&before=" + before : ""}`, { cache: "no-store" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+async function openChat(ray) {
+  const req = ++panelRequest;
+  const name = lastBoard?.cells?.find((c) => c.ray === ray)?.name || ray;
+  showPanel(`${name} · chat`, `<div class="chat-bar"><button type="button" class="chat-older" hidden>older</button><label><input type="checkbox" class="chat-system"> show system and tool output</label></div><div class="chat-log">loading…</div>`);
+  chatState = { ray, req, start: 0, end: 0, before: null };
+  panelBody.classList.remove("show-system");
+  try {
+    const page = await chatFetch(ray, null);
+    if (req !== panelRequest) return;
+    const log = panelBody.querySelector(".chat-log");
+    log.innerHTML = page.turns.length ? page.turns.map(turnHtml).join("") : "No session transcript.";
+    Object.assign(chatState, { start: page.start, end: page.end, before: page.before });
+    panelBody.querySelector(".chat-older").hidden = page.before == null;
+    panelBody.scrollTop = panelBody.scrollHeight;
+  } catch (e) { if (req === panelRequest) panelBody.querySelector(".chat-log").textContent = "Chat unavailable: " + e.message; }
+}
+async function pollChat() {
+  const s = chatState;
+  if (!s || s.req !== panelRequest || panel.hidden) return;
+  try {
+    const page = await chatFetch(s.ray, null);
+    if (s.req !== panelRequest || page.end === s.end) return;
+    const log = panelBody.querySelector(".chat-log");
+    const follow = panelBody.scrollHeight - panelBody.scrollTop - panelBody.clientHeight < 40;
+    if (page.end < s.end || page.start > s.end) { openChat(s.ray); return; } // new session or a gap
+    const fresh = page.turns.slice(s.end - page.start);
+    // The last turn may have gained tool calls or results: redraw it, then append the rest.
+    const lastNew = page.turns[s.end - 1 - page.start];
+    if (lastNew && log.lastElementChild) log.lastElementChild.outerHTML = turnHtml(lastNew);
+    log.insertAdjacentHTML("beforeend", fresh.map(turnHtml).join(""));
+    s.end = page.end;
+    if (follow) panelBody.scrollTop = panelBody.scrollHeight;
+  } catch { /* next poll */ }
+}
+setInterval(pollChat, 5000);
+document.addEventListener("click", async (event) => {
+  const btn = event.target.closest?.(".ray-chat");
+  if (btn) { openChat(btn.dataset.ray); return; }
+  const older = event.target.closest?.(".chat-older");
+  if (older && chatState?.before != null) {
+    const s = chatState;
+    const page = await chatFetch(s.ray, s.before);
+    if (s.req !== panelRequest) return;
+    const log = panelBody.querySelector(".chat-log");
+    const h = panelBody.scrollHeight;
+    log.insertAdjacentHTML("afterbegin", page.turns.map(turnHtml).join(""));
+    panelBody.scrollTop += panelBody.scrollHeight - h;
+    s.before = page.before; s.start = page.start;
+    older.hidden = page.before == null;
+  }
+});
+document.addEventListener("change", (event) => {
+  if (event.target.classList?.contains("chat-system")) panelBody.classList.toggle("show-system", event.target.checked);
+});
+document.getElementById("panel-close").addEventListener("click", () => { panelRequest++; panel.hidden = true; });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !panel.hidden) { panelRequest++; panel.hidden = true; } });
+document.addEventListener("click", (e) => {
+  const goal = e.target.closest?.(".goal-open");
+  if (goal) openGoal(goal.dataset.ray, goal.dataset.goal);
+  const job = e.target.closest?.(".handoff-detail");
+  if (job) openHandoff(job.dataset.ray, job.dataset.job);
+});
+document.addEventListener("click", async (e) => {
+  const button = e.target.closest?.(".check-run");
+  if (!button || button.disabled) return;
+  button.disabled = true;
+  button.textContent = "running…";
+  const query = new URLSearchParams({ ray: button.dataset.ray, goal: button.dataset.goal });
+  let error = "";
+  try {
+    const response = await fetch(`/api/checks/run?${query}`, { method: "POST" });
+    if (!response.ok) {
+      const problem = await response.json();
+      error = `run failed: ${problem.error || response.status}`;
+    }
+  } catch (err) { error = `run failed: ${String(err)}`; }
+  finally {
+    await load();
+    if (error) {
+      openGoal(button.dataset.ray, button.dataset.goal);
+      panelBody.insertAdjacentHTML("afterbegin", `<p class="ledger-error">${esc(error)}</p>`);
+    }
+  }
+});
+document.addEventListener("click", async (e) => {
+  const link = e.target.closest?.(".handoff-open");
+  if (!link) return;
+  e.preventDefault();
+  try {
+    const response = await fetch("/api/open", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ray: link.dataset.ray, job: link.dataset.job, what: link.dataset.what }),
+    });
+    if (!response.ok) {
+      const problem = await response.json();
+      link.title = `open failed: ${problem.error || response.status}`;
+    }
+  } catch { link.title = "open failed"; }
+});
+document.addEventListener("toggle", (e) => {
+  const d = e.target; if (!(d instanceof HTMLDetailsElement)) return;
+  d.open ? open.add(d.dataset.ray) : open.delete(d.dataset.ray);
+}, true);
+async function load() {
+  try {
+    const d = await (await fetch("/api/board", { cache: "no-store" })).json();
+    perRay = d.overview?.perRayUsd ?? {};
+    document.getElementById("top").innerHTML = machineShelf(d.shelf) + keeperStrip(d.keepers) + strip(d.overview) + diskStrip(d.disk) + codexStrip(d.codex, d.gate);
+    document.getElementById("mission").innerHTML = mission(d);
+    const issues = d.truth?.mismatches || [];
+    const truthBanner = document.getElementById("truth-banner");
+    truthBanner.hidden = !!d.truth && !issues.length;
+    if (!d.truth) truthBanner.textContent = "Board truth · checking processes, resumes and keeper…";
+    else if (issues.length) truthBanner.innerHTML = `<details><summary>${issues.length} board warning${issues.length === 1 ? "" : "s"}</summary><ul>${issues.slice(0, 20).map(m => `<li>${esc(m.line)}</li>`).join("")}</ul></details>`;
+    lastBoard = d;
+    const inbox = document.getElementById("decision-inbox"), stats = d.decisions || {};
+    inbox.hidden = !(stats.pending || stats.errors);
+    if (!inbox.hidden) inbox.innerHTML = `<a href="/board/decisions"><strong>${stats.pending || 0} decisions</strong>` +
+      `<span>${stats.oldestAgeMs == null ? "" : "oldest " + mins(stats.oldestAgeMs)}` +
+      `${stats.errors ? ` · ${stats.errors} invalid file${stats.errors === 1 ? "" : "s"}` : ""}</span></a>`;
+    if (!dragging) document.getElementById("b").innerHTML = d.cells.map(row).join("") + stoppedMarkup(d.stopped);
+  } catch {}
+}
+if (!decisionsMode) { load(); setInterval(load, 5000); }
+// Tracker rows in a ray's cell: TRACKER.md order is the priority (top = the ray's next task). Drag the grip (mouse or
+// finger, or arrow keys on a focused grip) to reorder; the rows swap places in TRACKER.md. A red age = untouched for a day.
+let dragging = null;
+const stClass = (s) => /^running/.test(s) ? "running" : /^waiting/.test(s) ? "waiting" : /^new/.test(s) ? "new" : "";
+function trackerLine(t) {
+  const stale = t.ageMs != null && t.ageMs > 24 * 3600e3 && /^(running|new|open)/.test(t.status);
+  const age = stale ? `<span class="age" title="not updated for ${mins(t.ageMs)}">${Math.floor(t.ageMs / 86400e3) || 1}d</span>` : "";
+  return `<li data-id="${esc(t.id)}"><span class="grip" role="button" tabindex="0" aria-label="move #${esc(t.id)}">⠿</span>` +
+    `<span class="tt" data-full="${esc(t.full || t.text)}" data-latest="${esc(t.latest || "")}" data-next="${esc(t.next || "")}">${esc(t.text)}</span><span class="st ${stClass(t.status)}">${esc(t.status)}</span>${age}</li>`;
+}
+async function saveCell(ol) {
+  const ids = [...ol.children].map((li) => li.dataset.id);
+  try { await fetch("/api/tracker/order", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids, within: true }) }); } catch {}
+  load();
+}
+document.addEventListener("pointerdown", (e) => {
+  const grip = e.target.closest?.(".trk .grip"); if (!grip) return;
+  e.preventDefault();
+  const li = grip.parentElement;
+  dragging = { li, ol: li.parentElement, moved: false };
+  li.classList.add("drag");
+  try { grip.setPointerCapture(e.pointerId); } catch {}
+});
+document.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  const { li, ol } = dragging;
+  for (const other of ol.children) {
+    if (other === li) continue;
+    const r = other.getBoundingClientRect();
+    if (e.clientY > r.top && e.clientY < r.bottom) {
+      const before = e.clientY < r.top + r.height / 2;
+      if (before && other.previousElementSibling !== li) { ol.insertBefore(li, other); dragging.moved = true; }
+      else if (!before && other.nextElementSibling !== li) { ol.insertBefore(li, other.nextElementSibling); dragging.moved = true; }
+      break;
+    }
+  }
+});
+const endDrag = () => {
+  if (!dragging) return;
+  const { li, ol, moved } = dragging;
+  li.classList.remove("drag"); dragging = null;
+  if (moved) saveCell(ol);
+};
+document.addEventListener("pointerup", endDrag);
+document.addEventListener("pointercancel", endDrag);
+document.addEventListener("keydown", (e) => {
+  const grip = e.target.closest?.(".trk .grip"); if (!grip || !/^Arrow(Up|Down)$/.test(e.key)) return;
+  e.preventDefault();
+  const li = grip.parentElement, ol = li.parentElement;
+  if (e.key === "ArrowUp" && li.previousElementSibling) ol.insertBefore(li, li.previousElementSibling);
+  else if (e.key === "ArrowDown" && li.nextElementSibling) ol.insertBefore(li.nextElementSibling, li);
+  else return;
+  saveCell(ol);
+});
+</script>
+<div class="pop" id="pop" role="tooltip"></div>
+<script>
+// Full tracker row on hover (styled popover, not the browser title); a tap/click wraps the row in place.
+(() => {
+  const pop = document.getElementById("pop");
+  let cur = null;
+  const hide = () => { cur = null; pop.classList.remove("on"); };
+  const show = (tt) => {
+    const li = tt.closest("li"), id = li?.dataset.id ?? "", st = li?.querySelector(".st")?.textContent ?? "";
+    const e = (x) => x.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+    pop.innerHTML = `<div class="ph">#${e(id)} · ${e(st)}</div><div>${e(tt.dataset.full || tt.textContent)}</div>` +
+      (tt.dataset.latest ? `<div class="pl"><b>Latest</b> ${e(tt.dataset.latest)}</div>` : "") +
+      (tt.dataset.next ? `<div class="pl"><b>Next</b> ${e(tt.dataset.next)}</div>` : "");
+    pop.classList.add("on");
+    const r = tt.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    const left = Math.max(16, Math.min(r.left, innerWidth - w - 16));
+    const top = r.bottom + 6 + h > innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6;
+    pop.style.left = left + "px"; pop.style.top = top + "px"; cur = tt;
+  };
+  document.addEventListener("mouseover", (ev) => {
+    const tt = ev.target.closest?.(".trk .tt");
+    if (ev.target.closest?.("#pop")) return;
+    if (tt && !document.querySelector(".trk li.drag")) { if (tt !== cur) show(tt); } else if (cur) hide();
+  });
+  document.addEventListener("click", (ev) => { const tt = ev.target.closest?.(".trk .tt"); if (tt) tt.closest("li").classList.toggle("wrap"); });
+  addEventListener("scroll", hide, true);
+  // The board re-renders every 5 s; drop a popover whose row is gone.
+  setInterval(() => { if (cur && !document.body.contains(cur) && !pop.matches(":hover")) hide(); }, 500);
+})();
+</script>
+
+<script>
+// Decision page: independent of ray sessions; only the board writes answer files.
+(() => {
+  if (!decisionsMode) return;
+  document.getElementById("top").hidden = true;
+  document.getElementById("board-notification-header").hidden = true;
+  document.getElementById("board-notification-header").style.display = "none";
+  document.getElementById("b").hidden = true;
+  document.getElementById("decisions-view").hidden = false;
+  const slot = document.getElementById("decision-slot");
+  const pos = document.getElementById("decision-pos");
+  const prev = document.getElementById("decision-prev"), next = document.getElementById("decision-next");
+  const requested = new URLSearchParams(location.search);
+  let items = [], selected = requested.get("ray") && requested.get("id") ? requested.get("ray") + "/pending/" + requested.get("id") : "", changing = false, busy = false, feedback = "", draftNote = "";
+  const identity = (d) => `${d.ray}/${d.folder}/${d.id}`;
+  function current() { return items.find((x) => identity(x) === selected) || items[0]; }
+  // The next decision still waiting for an answer, after the given one (wraps); "" when none is left.
+  const isOpen = (x) => x.folder === "pending" && !x.answer && !x.error;
+  function nextOpen(afterId) {
+    const at = items.findIndex((x) => identity(x) === afterId);
+    for (let i = 1; i <= items.length; i++) { const x = items[(at + i + items.length) % items.length]; if (x && isOpen(x)) return identity(x); }
+    return "";
+  }
+  function move(n) { const i = items.findIndex((x) => identity(x) === selected);
+    const nextItem = items[Math.max(0, Math.min(items.length - 1, i + n))];
+    if (nextItem) { selected = identity(nextItem); changing = false; feedback = ""; draftNote = ""; draw(); }
+  }
+  prev.addEventListener("click", () => move(-1)); next.addEventListener("click", () => move(1));
+  function draw() {
+    const item = current(), i = items.indexOf(item);
+    pos.textContent = !item ? "" : `${i + 1} / ${items.length}`;
+    prev.disabled = !item || i === 0; next.disabled = !item || i === items.length - 1;
+    if (!item) { slot.innerHTML = '<p class="decision-question">No decisions yet.</p>'; return; }
+    if (item.error) {
+      slot.innerHTML = `<div class="decision-error"><strong>Invalid decision · ${esc(item.ray)}/${esc(item.folder)}/${esc(item.id)}.json</strong><p>${esc(item.error)}</p></div>`;
+      return;
+    }
+    const d = item.decision, answered = item.state === "answered" && !changing;
+    const expired = d.deadline && Date.parse(d.deadline) < Date.now();
+    const noteOnly = d.options.length === 1 && d.allowNote && /note|reply/i.test(d.options[0].key + " " + d.options[0].label); // owner 26 Nov: no fake choice
+    slot.innerHTML = `<article class="${answered ? "decision-answered" : ""}">
+      <div class="decision-meta"><span>${esc(item.ray)}</span><span>${esc(new Date(d.createdAt).toLocaleString())}</span>
+      ${d.deadline ? `<span>${expired ? "Past deadline" : "Deadline"} ${esc(new Date(d.deadline).toLocaleString())}</span>` : ""}
+      <strong class="decision-status">${answered ? "Answered" : "Needs answer"}</strong></div>
+      <h2 class="decision-title">${esc(d.title)}</h2><p class="decision-question">${esc(d.question)}</p>
+      <div class="choice-grid"${noteOnly ? " hidden" : ""}>${d.options.map((o, idx) => `<button type="button" class="choice ${item.answer?.key === o.key ? "selected" : ""}"
+        data-choice="${esc(o.key)}" ${answered || busy ? "disabled" : ""} aria-label="${esc((idx + 1) + ". " + o.label)}">
+        ${o.images?.length ? `<div class="choice-photos">${o.images.map((path) =>
+          `<img loading="lazy" alt="${esc(o.label)} visual" src="/api/decisions/image?ray=${encodeURIComponent(item.ray)}&path=${encodeURIComponent(path)}">`).join("")}</div>` : ""}
+        <span class="choice-label"><span class="choice-numbers">${idx + 1}</span>${esc(o.label)}</span>
+        ${o.detail ? `<span class="choice-detail">${esc(o.detail)}</span>` : ""}
+        ${answered && item.answer?.key === o.key ? '<span class="choice-picked">✓ Selected</span>' : ""}
+      </button>`).join("")}</div>
+      ${answered ? `<div class="decision-saved">${item.answer?.key ? `Choice: ${esc(d.options.find((o) => o.key === item.answer.key)?.label || item.answer.key)}` : "Note only"}${item.answer?.note ? ` · ${esc(item.answer.note)}` : ""}</div>
+        ${item.folder === "pending" ? '<button type="button" class="change-answer">Change answer</button>' : ""}` :
+        d.allowNote ? `<div class="decision-note"><label for="decision-text">${noteOnly ? "Your answer" : "Optional note (500 characters)"}</label>
+          <textarea id="decision-text" maxlength="500" placeholder="Note to ray…">${esc(draftNote)}</textarea>
+          <button type="button" id="decision-send-note">${noteOnly ? "Answer" : "Send note only"}</button></div>` : ""}
+      ${!answered && item.folder === "pending" ? '<button type="button" id="decision-dismiss" title="Nothing to say: the ray decides or drops it">Dismiss</button>' : ""}
+      <div class="decision-feedback" role="status">${esc(feedback)}</div></article>`;
+    slot.querySelectorAll(".choice").forEach((button) => button.addEventListener("click", () => send(button.dataset.choice)));
+    slot.querySelector(".change-answer")?.addEventListener("click", () => { changing = true; feedback = "";
+      draftNote = item.answer?.note || ""; draw(); });
+    slot.querySelector("#decision-text")?.addEventListener("input", (e) => { draftNote = e.target.value; });
+    slot.querySelector("#decision-send-note")?.addEventListener("click", () => send(""));
+    slot.querySelector("#decision-dismiss")?.addEventListener("click", () => send("dismissed", true));
+  }
+  async function send(key, dismiss = false) {
+    const item = current(); if (!item || busy || item.error || item.folder !== "pending") return;
+    const note = dismiss ? "" : slot.querySelector("#decision-text")?.value || "";
+    if (!key && !note.trim()) { feedback = "Select an option or enter a note."; draw(); return; }
+    busy = true; feedback = "";
+    slot.querySelectorAll("button").forEach((b) => b.disabled = true);
+    try {
+      const response = await fetch("/api/decisions/answer", { method: "POST", headers: {
+        "content-type": "application/json", "x-decision-token": DECISION_TOKEN,
+      }, body: JSON.stringify({ ray: item.ray, id: item.id, key, note, change: changing }) });
+      const result = await response.json();
+      if (!response.ok) throw Error(result.error || `HTTP ${response.status}`);
+      changing = false; draftNote = "";
+      document.dispatchEvent(new Event("decision-answered"));
+      // Move on to the next open decision (picked before the reload: the answered one moves folder and order).
+      const next = nextOpen(identity(item));
+      await refresh();
+      if (next && next !== identity(item) && items.some((x) => identity(x) === next)) selected = next;
+      else { const open = items.find(isOpen); if (open) selected = identity(open); }
+    } catch (e) { feedback = String(e.message || e); }
+    finally { busy = false; draw(); }
+  }
+  async function refresh() {
+    try {
+      const response = await fetch("/api/decisions", { cache: "no-store" });
+      if (!response.ok) throw Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const old = selected;
+      items = data.items || [];
+      if (!items.some((item) => identity(item) === old)) {
+        const open = items.find(x => x.ray === requested.get("ray") && x.id === requested.get("id")) || items.find(isOpen);
+        selected = open ? identity(open) : items.length ? identity(items[0]) : ""; draftNote = ""; changing = false;
+      }
+      document.getElementById("decision-tally").textContent =
+        `${data.summary.pending} pending${data.summary.errors ? ` · ${data.summary.errors} invalid` : ""}`;
+      draw();
+    } catch (e) { slot.textContent = `Could not load decisions: ${String(e)}`; }
+  }
+  document.addEventListener("keydown", (e) => {
+    if (/^[1-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey &&
+      !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
+      const btn = slot.querySelectorAll(".choice")[Number(e.key) - 1];
+      if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
+    }
+  });
+  refresh(); setInterval(() => { if (!busy && !changing && document.activeElement?.id !== "decision-text") refresh(); }, 5000);
+})();
+</script>
+</body>
+</html>

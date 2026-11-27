@@ -17,7 +17,7 @@ async function fixture(t){
   writeFileSync(path.join(dir,'settings.json'),JSON.stringify({root,port,sharePort,agent:'claude-code',runtime:process.execPath,runtimeArgs:flags,token,ownsRoot:true}));
   // fileURLToPath works for Windows drive letters and spaces.
   const {fileURLToPath}=await import('node:url');
-  function run(...args){const r=spawnSync(process.execPath,[...flags,fileURLToPath(new URL('ray-cli.ts',src)),...args],{env,encoding:'utf8'});assert.equal(r.status,0,r.stderr);return r.stdout.trim();}
+  function run(...args){const r=spawnSync(process.execPath,[...flags,fileURLToPath(new URL('arpe-cli.ts',src)),...args],{env,encoding:'utf8'});assert.equal(r.status,0,r.stderr);return r.stdout.trim();}
   run('new','demo','Shared project');run('new','other','Unshared project');
   const child=spawn(process.execPath,[...flags,fileURLToPath(new URL('server.ts',src))],{env,stdio:'ignore'});
   t.after(async()=>{if(child.exitCode===null){child.kill();await new Promise(r=>child.once('exit',r));}rmSync(home,{recursive:true,force:true});});
