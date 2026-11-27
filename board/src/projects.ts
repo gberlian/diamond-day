@@ -3,7 +3,7 @@ import path from 'node:path';
 import { parseRpm } from './rpm.ts';
 import { projectDocTree, safeUnder } from './docs-page.ts';
 import { projectLibrary } from './library.ts';
-import { readDecision } from './decisions.ts';
+import { readDecision, decisionIds } from './decisions.ts';
 export const validName = (name: string) => /^[a-z][a-z0-9-]{0,63}$/.test(name) && !/^(con|prn|aux|nul|com[0-9]|lpt[0-9]|tools|templates|docs|plans|decisions|insights|handoffs)$/.test(name);
 export function projectNames(root: string): string[] {
   try { return readdirSync(root,{withFileTypes:true}).filter(e=>e.isDirectory() && validName(e.name) && safeGoals(root,e.name)).map(e=>e.name).sort(); } catch { return []; }
@@ -19,9 +19,10 @@ export function project(root:string, name:string) {
   const decisionInbox:any[]=[];
   const results=rpm.results.map(r=>({...r,cards:r.steps.map(s=>{
     const item=s.decision?readDecision(root,name,s.decision):null;
-    if(item)decisionInbox.push({...item,card:{result:r.id,index:s.index}});
-    return {...s,column:s.mark==='x'?'done':s.mark==='~'?'running':'planned',cause:null,jobs:[],missingProof:s.mark==='x'&&!s.proof,decisionItem:item};
+    if(item){const {folder,...publicItem}=item;decisionInbox.push({...publicItem,card:{result:r.id,index:s.index}});}
+    return {...s,column:s.mark==='x'?'done':s.mark==='~'?'running':'planned',cause:null,jobs:[],missingProof:s.mark==='x'&&!s.proof,decisionItem:item?(({folder,...rest})=>rest)(item):null};
   })}));
+  for(const id of decisionIds(root,name))if(!decisionInbox.some(x=>x.id===id)){const item=readDecision(root,name,id);if(item){const {folder,...rest}=item;decisionInbox.push(rest);}}
   return {...rpm,ray:name,running:false,session:{session:'stopped',ago:null},lastActivity:statSync(p).mtimeMs,
     results,
     docs:[],docTree:projectDocTree(root,name),library:projectLibrary(root,name),decisionInbox,editEnabled:false,ledgerError:null,nextCard:null,pickupStatus:null};

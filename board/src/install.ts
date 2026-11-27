@@ -45,7 +45,7 @@ async function install(args:string[]){let root=process.env.RAYS_ROOT||path.join(
   if(old&&readdirSync(dir).some(n=>/^session-.*\.json$/.test(n)))throw new Error("Stop managed sessions before reinstalling");
   if(old)await stopBoard(old);
   const runtime=process.execPath,runtimeArgs=process.versions.bun?[]:['--experimental-strip-types','--disable-warning=ExperimentalWarning'];
-  const s:Settings={root,port,agent,runtime,runtimeArgs,token:old?.token||randomUUID(),ownsRoot:old?.ownsRoot??!existsSync(root)};
+  const s:Settings={root,port,agent,runtime,runtimeArgs,token:old?.token||randomUUID(),sharePort:old?.sharePort,shareOrigin:old?.shareOrigin,claudeProjectsDir:old?.claudeProjectsDir,usageProxyDb:old?.usageProxyDb,usageProxyPrices:old?.usageProxyPrices,ownsRoot:old?.ownsRoot??!existsSync(root)};
   mkdirSync(dir,{recursive:true});mkdirSync(path.join(dir,'bin'),{recursive:true});
   for(const name of ['board']){const dest=path.join(dir,name);if(path.resolve(source,name)!==dest){rmSync(dest,{recursive:true,force:true});cpSync(path.join(source,name),dest,{recursive:true});}}
   mkdirSync(path.join(dir,'tools'),{recursive:true});cpSync(path.join(source,'tools','rpm-check.ts'),path.join(dir,'tools','rpm-check.ts'));

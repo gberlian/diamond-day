@@ -36,9 +36,23 @@ try {
     if ($p.results[0].cards.Count -ne 3 -or -not $p.results[0].cards[0].must) { throw 'Cards missing' }
   }
   Write-Output 'PASS board: HTTP 200; projects demo, demo2; both RPM project pages and card APIs answer'
+  $shareListener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0); $shareListener.Start(); $sharePort = $shareListener.LocalEndpoint.Port; $shareListener.Stop()
+  & $ray share start $sharePort; if ($LASTEXITCODE -ne 0) { throw 'Sharing start failed' }
+  $shareBase = 'http://' + (@(127,0,0,1) -join '.') + ":$sharePort"
+  $sharePage = Invoke-WebRequest -UseBasicParsing "$base/board/sharing"
+  if ($sharePage.StatusCode -ne 200) { throw 'Sharing page failed' }
+  $denied = Invoke-WebRequest -UseBasicParsing -SkipHttpErrorCheck "$shareBase/api/board"
+  if ($denied.StatusCode -ne 404) { throw 'Owner API exposed on share listener' }
+  $invite = (& $ray share demo Guest viewer 1 | Select-Object -Last 1); if ($LASTEXITCODE -ne 0 -or $invite -notmatch '/join#demo/([A-Za-z0-9_-]{43})$') { throw 'Invite failed' }
+  $inviteToken = $Matches[1]
+  $shared = Invoke-RestMethod "$shareBase/c/demo/api" -Headers @{ Authorization = "Bearer $inviteToken" }
+  if ($shared.ray -ne 'demo' -or $shared.role -ne 'viewer') { throw 'Invite scope failed' }
+  Write-Output 'PASS sharing: owner page HTTP 200; share listener /api/board HTTP 404; viewer invitation works'
   Install-Run @('-Uninstall','-Purge')
   $answering = $false; try { $null = Invoke-WebRequest -UseBasicParsing "$base/board" -TimeoutSec 2; $answering = $true } catch {}
   if ($answering) { throw 'Board still answering' }
+  $answering = $false; try { $null = Invoke-WebRequest -UseBasicParsing "$shareBase/join" -TimeoutSec 2; $answering = $true } catch {}
+  if ($answering) { throw 'Share listener still answering' }
   if (@(Get-ChildItem -LiteralPath $env:HOME -Force).Count -ne 0) { throw 'HOME not empty after uninstall' }
   if (Test-Path -LiteralPath $ray) { throw 'ray wrapper remains' }
   if (([Environment]::GetEnvironmentVariable('Path','User') -split ';') -contains $bin) { throw 'User PATH entry remains' }
