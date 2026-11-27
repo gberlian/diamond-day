@@ -194,7 +194,7 @@ async function post(url, body) {
 
 export function projectsPage(): string {
   return `${HEAD("Projects")}<body>
-<nav class="top"><a href="/board">all</a><a href="/board/docs">docs</a><span class="grow"></span><span class="tabs" id="fleet" hidden title="ChatGPT chats the whole machine runs at once"><button type="button" data-d="-1" aria-label="fewer">−</button><b id="fleet-n">–</b> chats<button type="button" data-d="1" aria-label="more">+</button><i id="fleet-status"></i></span><button id="new" hidden>+ project</button></nav>
+<nav class="top"><a href="/board">all</a><a href="/board/docs">docs</a><a href="/board/decisions">decisions</a><span class="grow"></span><span class="tabs" id="fleet" hidden title="ChatGPT chats the whole machine runs at once"><button type="button" data-d="-1" aria-label="fewer">−</button><b id="fleet-n">–</b> chats<button type="button" data-d="1" aria-label="more">+</button><i id="fleet-status"></i></span><button id="new" hidden>+ project</button></nav>
 <main class="list" id="list"></main>
 <dialog id="dlg"><form id="form" method="dialog">
 <label>Name</label><input name="name" required pattern="[A-Za-z0-9][A-Za-z0-9_.\\-]*" maxlength="64" autocomplete="off">
@@ -250,7 +250,7 @@ load().then(() => { if (new URLSearchParams(location.search).get("new") && !docu
 
 export function projectPage(ray: string, decisionToken = ""): string {
   return `${HEAD(ray + " · board")}<body><style>.proj { grid-template-columns: minmax(0,1fr); } .proj.docs-open { grid-template-columns: minmax(180px, 260px) minmax(0,1fr); } .proj .chat[hidden] { display:none; } .docs-sidebar:not([hidden]) { display:block !important; } @media(max-width:900px){.proj.docs-open{grid-template-columns:minmax(0,1fr)}}</style>
-<nav class="top"><div class="pick"><button id="pick-btn" aria-haspopup="true" aria-expanded="false"><span class="dot" id="pick-dot"></span><b id="pick-name"></b><i>▾</i></button><div class="pick-menu" id="pick-menu" hidden></div></div><span class="grow"></span><button id="docs-toggle" aria-expanded="false">docs</button><button class="gear" id="settings-btn" hidden aria-label="Settings" title="Settings">⚙</button></nav>
+<nav class="top"><div class="pick"><button id="pick-btn" aria-haspopup="true" aria-expanded="false"><span class="dot" id="pick-dot"></span><b id="pick-name"></b><i>▾</i></button><div class="pick-menu" id="pick-menu" hidden></div></div><span class="grow"></span><a href="/board/decisions">decisions</a><button id="docs-toggle" aria-expanded="false">docs</button><button class="gear" id="settings-btn" hidden aria-label="Settings" title="Settings">⚙</button></nav>
 <dialog id="settings"><form id="floor-form" method="dialog"><h2>Settings</h2><label>Handoffs at once, this project <input type="number" name="floor" min="1" max="10"></label><label>ChatGPT chats, whole machine <input type="number" name="fleet" min="1" max="40"></label><p class="counts" id="settings-counts"></p><div class="row"><button type="button" id="settings-close">Close</button><button type="submit" value="save">Save</button></div><output></output></form></dialog>
 <div class="proj" id="project-layout"><aside id="docs-sidebar" class="docs-sidebar" hidden>
 <header><strong>Documents</strong><button id="docs-close" aria-label="Close documents">×</button></header>

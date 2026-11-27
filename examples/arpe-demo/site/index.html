@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Countdown</title>
+<style>
+  :root { --bg: #0e0f12; --fg: #f2efe8; --dim: #7d7a73; --accent: #e8b04a; }
+  @media (prefers-color-scheme: light) { :root { --bg: #f4f1ea; --fg: #17181b; --dim: #8a867d; --accent: #b5761a; } }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--fg); font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+         display: grid; place-items: center; padding: 16px; }
+  main { text-align: center; width: 100%; }
+  #clock { display: flex; justify-content: center; gap: clamp(8px, 3vw, 40px); font-variant-numeric: tabular-nums; }
+  .unit { display: flex; flex-direction: column; align-items: center; }
+  .n { font-size: clamp(44px, 13vw, 168px); font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
+  .l { margin-top: 10px; font-size: clamp(11px, 1.6vw, 15px); color: var(--dim); }
+  #target { margin-top: 48px; font-size: 14px; color: var(--dim); }
+  input { font: inherit; color: var(--fg); background: transparent; border: 0; border-bottom: 1px solid var(--dim); padding: 4px 2px; color-scheme: dark light; }
+  input:focus { outline: none; border-color: var(--accent); }
+  body.done .n { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <div id="clock" aria-live="polite">
+    <div class="unit"><span class="n" id="d">0</span><span class="l">days</span></div>
+    <div class="unit"><span class="n" id="h">00</span><span class="l">hours</span></div>
+    <div class="unit"><span class="n" id="m">00</span><span class="l">min</span></div>
+    <div class="unit"><span class="n" id="s">00</span><span class="l">sec</span></div>
+  </div>
+  <div id="target"><input id="to" type="datetime-local" aria-label="Count down to"></div>
+</main>
+<script>
+  const q = new URLSearchParams(location.search);
+  const pad = n => String(n).padStart(2, "0");
+  const local = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  function fallback() { const d = new Date(); return new Date(d.getFullYear() + 1, 0, 1); }
+  let target = new Date(q.get("to") || NaN);
+  if (isNaN(target)) target = fallback();
+  const input = document.getElementById("to");
+  input.value = local(target);
+  input.addEventListener("change", () => {
+    const t = new Date(input.value);
+    if (isNaN(t)) return;
+    target = t;
+    q.set("to", input.value);
+    history.replaceState(null, "", "?" + q);
+    tick();
+  });
+  const el = id => document.getElementById(id);
+  function tick() {
+    let ms = Math.max(0, target - Date.now());
+    const s = Math.floor(ms / 1000);
+    el("d").textContent = Math.floor(s / 86400);
+    el("h").textContent = pad(Math.floor(s / 3600) % 24);
+    el("m").textContent = pad(Math.floor(s / 60) % 60);
+    el("s").textContent = pad(s % 60);
+    document.body.classList.toggle("done", ms === 0);
+    document.title = ms === 0 ? "Done" : `${Math.floor(s / 86400)}d ${pad(Math.floor(s / 3600) % 24)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
+  }
+  tick();
+  setInterval(tick, 250);
+</script>
+</body>
+</html>

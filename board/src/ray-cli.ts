@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync, lstatSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync, lstatSync, cpSync, readdirSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -20,13 +20,37 @@ export function newRay(s:Settings,n:string,mission:string){
   const day=new Date().toISOString().slice(0,10);
   put(path.join(p,'README.md'),`# ${n}\n\n## Mission\n${m}\n\n## Repos\n| Repo | What |\n|---|---|\n`);
   put(path.join(p,'GOALS.md'),`# ${n}\n\n**Ultimate Vision:** ${m}\n**Ultimate Purpose:** Because meaningful progress deserves a clear direction.\n**Roles:** Builder, Tester\n**Week of ${day}:** done: project created; crossed off: none; carried over: define the first outcome.\n\n## 1. Establish the first outcome\n- **Result:** One current resume note records the next outcome within 24 hours.\n- **Purpose:** So that the owner and agent can resume without losing context.\n- **Plan:**\n  - [~] * Clarify the first measurable outcome with the owner (session, 30m)\n  - [ ] Write a suitable acceptance criterion (session, 20m)\n  - [ ] Review the next action with the owner (owner, 15m)\n- **Check:** A resume note exists and is current.\n  check: file plans/resume.md younger 24h\n- **Now:** The project is ready to define its first measurable outcome.\n`);
-  put(path.join(p,'plans','resume.md'),`# Resume\n\n## Now\nProject created. Mission: ${m}\n\n## Next\nAgree on a measurable result and replace the starter block with its runnable check.\n`);
+  put(path.join(p,'plans','resume.md'),`# Resume\n\n## Now\nProject created. Mission: ${m}\n\n## In flight\nNone.\n\n## Next\nAgree on a measurable result and replace the starter block with its runnable check.\n\n## Waiting on the owner\nApproval of the first Result and Purpose.\n\n## Gotchas\nNone.\n`);
   put(path.join(p,'plans',`${day}-from-owner-start.md`),`# Owner start\n\n${m}\n`);
   const rule=s.agent==='codex'?'AGENTS.md':s.agent==='claude-desktop'?'PROJECT-INSTRUCTIONS.md':'CLAUDE.md';
   const shared=`## Boundaries and evidence
-Edit only this ray and repositories listed in its README. Do not change permissions, grant trust, spend money, or publish without approval. Do not expose private files or secrets in handoffs. Run the declared Check in the ray directory and record actual evidence; the RPM score is not outcome proof. Keep plans/resume.md current. Delegate substantial independent work using the handoff template and review returned files before accepting them.`;
+Edit only this ray and repositories listed in its README. Do not change permissions, grant trust, spend money, or publish without approval. Do not expose private files or secrets in handoffs. Run the declared Check in the ray directory and record actual evidence; the RPM score is not outcome proof. Add proof under each done card; finish only when the Check passes and every must has proof. Archive and replace a reached Result with the owner’s next approved outcome. Keep exactly one card running while work remains. Ask blocked questions through a card-linked decision in decisions/ and read the saved answer before acting. Keep all five parts of plans/resume.md current after each meaningful step. Confirm the successor has read and understood the resume note before closing a session. Delegate substantial independent work using the handoff template and review returned files before accepting them.`;
   put(path.join(p,rule),`# Ray instructions\n\nRead GOALS.md and plans/resume.md first. The owner owns Result and Purpose; the agent owns the plan. Run \`bun ../tools/rpm-check.ts .\` after editing goals.\n\n${shared}`);
   put(path.join(p,'.gitignore'),'.docs/\n');active(s,n,true);console.log(`Created ${n}: ${p}`);
+}
+/** Copy a trusted, self-contained template. No links, no overwrite, no execution. */
+export function newRayFrom(s:Settings,n:string,from:string){
+  const p=dir(s,n), source=path.resolve(from);
+  if(!lstatSync(source).isDirectory()||lstatSync(source).isSymbolicLink())throw new Error('Template must be a real directory');
+  const goal=path.join(source,'GOALS.md');
+  if(!lstatSync(goal).isFile()||lstatSync(goal).isSymbolicLink())throw new Error('Template requires a regular GOALS.md');
+  mkdirSync(s.root,{recursive:true});
+  const target=path.join(realpathSync(s.root),n), actual=realpathSync(source);
+  const rel=path.relative(actual,target);
+  if(!rel||(!path.isAbsolute(rel)&&rel!=='..'&&!rel.startsWith('..'+path.sep)))throw new Error('Template cannot contain its destination');
+  function validate(base:string){
+    for(const entry of readdirSync(base,{withFileTypes:true})){
+      const child=path.join(base,entry.name);
+      if(entry.isSymbolicLink()||(!entry.isDirectory()&&!entry.isFile()))throw new Error('Template contains a link or special file');
+      if(entry.name==='.git')throw new Error('Template must not contain repository metadata');
+      if(entry.isDirectory())validate(child);
+    }
+  }
+  validate(source);
+  mkdirSync(p); // exclusive: never modify an existing ray
+  try { for(const entry of readdirSync(source))cpSync(path.join(source,entry),path.join(p,entry),{recursive:true,force:false,errorOnExist:true}); }
+  catch(e){rmSync(p,{recursive:true,force:true});throw e;}
+  active(s,n,true);console.log(`Created ${n}: ${p}`);
 }
 function checkName(s:Settings,n:string){if(!projectNames(s.root).includes(n))throw new Error(`Unknown ray: ${n}`);return dir(s,n);}
 function browser(s:Settings,n?:string){const address=`${url(s)}/board${n?'/p/'+encodeURIComponent(n):''}`;console.log(address);
@@ -80,7 +104,7 @@ async function restore(s:Settings){
   }
 }
 export async function main(args:string[]){const s=settings();const [cmd,n,...rest]=args;
-  switch(cmd){case 'new':if(!n||rest.length!==1)throw new Error('Usage: ray new NAME "MISSION"');newRay(s,n,rest[0]!);break;
+  switch(cmd){case 'new':if(n&&rest.length===2&&rest[0]==='--from')newRayFrom(s,n,rest[1]!);else if(n&&rest.length===1&&rest[0]!=='--from')newRay(s,n,rest[0]!);else throw new Error('Usage: ray new NAME "MISSION" | ray new NAME --from TEMPLATE');break;
   case 'list':if(n)throw new Error('Usage: ray list');for(const name of projectNames(s.root))console.log(name);break;
   case 'board':if(rest.length)throw new Error('Usage: ray board [NAME]');if(n)checkName(s,n);await startBoard(s);browser(s,n);break;
   case 'open':if(!n||rest.length)throw new Error('Usage: ray open NAME');await openRay(s,n);break;
