@@ -1,0 +1,191 @@
+[
+  {
+    "id": "install",
+    "title": "Install ARPE",
+    "command": {
+      "bash": "bash install.sh",
+      "powershell": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./install.ps1"
+    },
+    "waitFor": {
+      "url": "/board",
+      "selector": "[data-ray=demo]",
+      "text": "demo"
+    },
+    "show": "The installer starts the board with a default demo. Load its printed address."
+  },
+  {
+    "id": "board",
+    "title": "List projects and open the board",
+    "command": [
+      "${cli} list",
+      "${cli} board"
+    ],
+    "outputIncludes": [
+      "demo",
+      "/board"
+    ],
+    "waitFor": {
+      "url": "/board",
+      "selector": "[data-ray=demo]",
+      "text": "demo"
+    },
+    "show": "The installed command lists demo and prints the board address."
+  },
+  {
+    "id": "mission",
+    "title": "Create a project from a one-sentence mission",
+    "command": [
+      "${cli} new club-page \"A public information page for our club\""
+    ],
+    "outputIncludes": [
+      "Created club-page"
+    ],
+    "waitFor": {
+      "url": "/board",
+      "selector": "[data-ray=club-page]",
+      "text": "A public information page for our club"
+    },
+    "show": "The new project appears alongside demo; no agent is needed."
+  },
+  {
+    "id": "project",
+    "title": "Open the new project's board page",
+    "command": [
+      "${cli} board club-page"
+    ],
+    "outputIncludes": [
+      "/board/p/club-page"
+    ],
+    "waitFor": {
+      "url": "/board/p/club-page",
+      "text": "Clarify the first measurable outcome with the owner"
+    },
+    "show": "The starter Result, Purpose, running card and Check are ready for the owner."
+  },
+  {
+    "id": "card",
+    "title": "Open the running card",
+    "action": "card",
+    "waitFor": {
+      "url": "/board/p/club-page",
+      "text": "Clarify the first measurable outcome with the owner",
+      "selector": "#pbody h2"
+    },
+    "show": "Click the running card to inspect its details. The starter project has no decision yet.",
+    "command": []
+  },
+  {
+    "id": "example",
+    "title": "Copy the countdown example",
+    "command": [
+      "${cli} new arpe-demo --from examples/arpe-demo",
+      "${cli} board arpe-demo"
+    ],
+    "outputIncludes": [
+      "Created arpe-demo",
+      "/board/p/arpe-demo"
+    ],
+    "waitFor": {
+      "url": "/board/p/arpe-demo",
+      "text": "Mission reviewed and first steps written down",
+      "done": 0
+    },
+    "show": "The Guide's saved countdown example starts at zero of six cards. Its page and test are included."
+  },
+  {
+    "id": "prepare",
+    "title": "Review the mission and validate the plan",
+    "cwd": "example",
+    "command": [
+      "${runtime} replay.mjs prepare",
+      "${tsRuntime} ../tools/rpm-check.ts ."
+    ],
+    "outputIncludes": [
+      "score 17/17",
+      "hard failures 0: PASS"
+    ],
+    "waitFor": {
+      "url": "/board/p/arpe-demo",
+      "text": "The mission and measurable plan are agreed",
+      "done": 1
+    },
+    "show": "From the installed arpe-demo directory, review the mission; the structural check passes and one card is done."
+  },
+  {
+    "id": "build",
+    "title": "Run the real browser Check",
+    "cwd": "example",
+    "command": [
+      "${runtime} replay.mjs build"
+    ],
+    "outputIncludes": [
+      "all checks passed (5/5)"
+    ],
+    "waitFor": {
+      "url": "/board/p/arpe-demo",
+      "text": "The page passes all five browser checks",
+      "done": 4
+    },
+    "show": "The five browser checks pass; the board records four done cards and a pending owner decision."
+  },
+  {
+    "id": "review",
+    "title": "Open the owner-review card",
+    "action": "review",
+    "waitFor": {
+      "url": "/board/p/arpe-demo",
+      "selector": "#card-decision-form",
+      "text": "Looks right, keep it local"
+    },
+    "show": "Click the running owner-review card and inspect the screenshots attached to the decision.",
+    "command": []
+  },
+  {
+    "id": "answer",
+    "title": "Answer the decision on the board",
+    "action": "answer",
+    "waitFor": {
+      "url": "/board/p/arpe-demo",
+      "selector": ".decision-answer",
+      "text": "Looks right, keep it local"
+    },
+    "show": "Choose Looks right, keep it local and click Answer. No publication is attempted; the saved answer is verified.",
+    "command": []
+  },
+  {
+    "id": "finish",
+    "title": "Finish the local replay",
+    "cwd": "example",
+    "command": [
+      "${runtime} replay.mjs finish"
+    ],
+    "outputIncludes": [
+      "all checks passed (5/5)",
+      "Result reached"
+    ],
+    "waitFor": {
+      "url": "/board/p/arpe-demo",
+      "text": "approved for local use",
+      "done": 6
+    },
+    "show": "The replay reads the actual saved answer, runs the browser Check again and records six completed cards."
+  },
+  {
+    "id": "close",
+    "title": "Archive the completed Result",
+    "cwd": "example",
+    "command": [
+      "${runtime} replay.mjs close"
+    ],
+    "outputIncludes": [
+      "all checks passed (5/5)",
+      "Result archived"
+    ],
+    "waitFor": {
+      "url": "/board/p/arpe-demo",
+      "done": 7,
+      "text": "Write one final case log entry"
+    },
+    "show": "The final Check passes and the seventh card is done. The Result is archived in the project."
+  }
+]
