@@ -2,6 +2,7 @@
 import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
 import path from "node:path";
+import { parseGoals } from "./goals.ts";
 import { parseRpm, setResultField, EditError } from "./rpm.ts";
 import { DecisionService, DecisionError, safeImage } from "./decisions.ts";
 type LedgerJob = {ray: string; name: string; state: string; startedAt?: string; finishedAt?: string; appliedCommit?: string};
@@ -180,6 +181,8 @@ export class Companies {
     if (b.op === "result" && after.results.find(r=>r.id===b.id)?.[b.key as "result"|"purpose"] !== single(b.value)) fail("field cannot be represented without changing Markdown", 409);
     const expected = b.op === "reorder" ? b.ids.map((id: string) => before.results.find(r => r.id === id)) : before.results;
     if (after.results.length !== before.results.length + (b.op === "add" ? 1 : 0) || expected.some((r: any, i: number) => JSON.stringify(r.steps) !== JSON.stringify(after.results[i]?.steps))) fail("edit would change Execution", 409);
+    const declarations = (source: string) => JSON.stringify(parseGoals(source, ray).goals.filter(g=>g.checkDeclarations?.length).map(g=>[g.id,g.checkDeclarations]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));
+    if (declarations(md) !== declarations(next)) fail("edit would change executable checks", 403);
     if (next !== md) { const entry = {op: b.op, id: b.id, key: b.key, ids: b.ids, value: b.value, title: b.title, result: b.result, purpose: b.purpose, before: hash(md), after: hash(next)}; this.audit(ray, m, {...entry, state: "prepared"}); atomic(file, next); this.audit(ray, m, {...entry, state: "committed"}); }
     return {ok: true, revision: hash(next)};
   }
@@ -279,7 +282,7 @@ export class Companies {
         return json({ok: true});
       }
       if (!rayMatch) return missing(); const ray = rayMatch[1]!;
-      if (b.op === "invite") { if(!this.options.sharePort) return json({error:"Run ray share start PORT first"},409); return json(this.invite(ray, b.person, b.role, b.ttlHours)); }
+      if (b.op === "invite") { if(!this.options.sharePort) return json({error:"Run arpe share start PORT first"},409); return json(this.invite(ray, b.person, b.role, b.ttlHours)); }
       if (b.op === "revoke") { this.revoke(ray, b.id); return json({ok: true}); }
       if (b.op === "publish") {
         const d = this.load(ray);

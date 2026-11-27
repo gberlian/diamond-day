@@ -50,14 +50,14 @@ export function exportTurns(ray: string, turns: ChatTurn[], dir: string, sinceMs
   return out;
 }
 
-export function chatFor(s:Settings,ray:string){
+export function chatFor(s:Settings,ray:string,before:number|null=null,limit=100){
   const root=s.claudeProjectsDir||path.join(home(),'.claude','projects');
   const key=path.resolve(s.root,ray).replace(/[:\\/]/g,'-');const dir=safeUnder(root,key);
   let turns:ChatTurn[]=[];
   if(dir){const files=readdirSync(dir,{withFileTypes:true}).filter(e=>e.isFile()&&e.name.endsWith('.jsonl')).map(e=>path.join(dir,e.name)).sort((a,b)=>statSync(b).mtimeMs-statSync(a).mtimeMs);if(files.length)turns=readChatHistory(files[0]!);}
   // The export destination must not traverse a symlink or junction.
-  if(!turns.length)return chatPage([],null,100);
+  if(!turns.length)return chatPage([],before,limit);
   let base=path.resolve(s.root,ray);for(const component of ['docs','changes','chat']){base=path.join(base,component);if(!existsSync(base))mkdirSync(base);if(!lstatSync(base).isDirectory()||lstatSync(base).isSymbolicLink())throw Error('Unsafe chat export directory');}
   exportTurns(ray,turns,base,Date.now()-30*60_000);
-  return chatPage(turns.filter(t=>t.role!== 'system'&&t.text),null,100);
+  return chatPage(turns.filter(t=>t.role!== 'system'&&t.text),before,limit);
 }

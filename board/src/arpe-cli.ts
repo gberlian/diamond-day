@@ -72,7 +72,7 @@ async function openRay(s:Settings,n:string){const p=checkName(s,n);await startBo
   if(s.agent==='claude-desktop'){console.log('Open the project in Claude Desktop using PROJECT-INSTRUCTIONS.md.');return;}
   const agent=executable(process.env.RAY_AGENT_BIN|| (s.agent==='codex'?'codex':'claude'));
   if(!agent)throw new Error('Agent executable not found; install it or set RAY_AGENT_BIN.');
-  const f=sessionFile(n);if(existsSync(f))throw new Error(`A managed session exists for ${n}; use ray stop ${n} first (remove stale session file only after verifying no session is running).`);
+  const f=sessionFile(n);if(existsSync(f))throw new Error(`A managed session exists for ${n}; use arpe stop ${n} first (remove stale session file only after verifying no session is running).`);
   const token=randomUUID();let child:ReturnType<typeof spawn>|undefined;
   const ctl=createServer((req,res)=>{if(req.method!=='POST'||req.url!=='/stop'||req.headers.authorization!==`Bearer ${token}`){res.writeHead(403).end();return;}child?.kill();res.end('ok');});
   await new Promise<void>((resolve,reject)=>{ctl.once('error',reject);ctl.listen(0,loopback,resolve);});
@@ -99,9 +99,9 @@ async function restore(s:Settings){
   const agent=executable(process.env.RAY_AGENT_BIN||(s.agent==='codex'?'codex':'claude'));
   for(const name of names){
     if(existsSync(sessionFile(name)))continue;
-    if(!terminal||!agent||s.agent==='claude-desktop'){console.log(`Resume in a terminal: ray open ${name}`);continue;}
-    const child=spawn(terminal,[...prefix,s.runtime,...s.runtimeArgs,path.join(installDir(),'board','src','ray-cli.ts'),'open',name],{detached:true,stdio:'ignore',windowsHide:false});
-    child.on('error',()=>console.log(`Resume in a terminal: ray open ${name}`));child.unref();
+    if(!terminal||!agent||s.agent==='claude-desktop'){console.log(`Resume in a terminal: arpe open ${name}`);continue;}
+    const child=spawn(terminal,[...prefix,s.runtime,...s.runtimeArgs,path.join(installDir(),'board','src','arpe-cli.ts'),'open',name],{detached:true,stdio:'ignore',windowsHide:false});
+    child.on('error',()=>console.log(`Resume in a terminal: arpe open ${name}`));child.unref();
   }
 }
 async function configureShare(s:Settings,port?:number,origin?:string){
@@ -112,23 +112,23 @@ async function configureShare(s:Settings,port?:number,origin?:string){
   try{await startBoard(next);}catch(e){writeFileSync(file,JSON.stringify(s,null,2)+'\n',{mode:0o600});await startBoard(s);throw e;}
 }
 async function share(s:Settings,n:string|undefined,args:string[]){
-  if(n==='start'){if(args.length<1||args.length>2)throw Error('Usage: ray share start PORT [HTTPS_ORIGIN]');await configureShare(s,Number(args[0]),args[1]);console.log('Sharing listener started');return;}
-  if(n==='stop'){if(args.length)throw Error('Usage: ray share stop');await configureShare(s);console.log('Sharing listener stopped');return;}
-  if(!n||args.length>3)throw Error('Usage: ray share PROJECT [PERSON] [viewer|editor] [HOURS]');checkName(s,n);
-  if(!s.sharePort)throw Error('Run ray share start PORT [HTTPS_ORIGIN] first');await startBoard(s);
+  if(n==='start'){if(args.length<1||args.length>2)throw Error('Usage: arpe share start PORT [HTTPS_ORIGIN]');await configureShare(s,Number(args[0]),args[1]);console.log('Sharing listener started');return;}
+  if(n==='stop'){if(args.length)throw Error('Usage: arpe share stop');await configureShare(s);console.log('Sharing listener stopped');return;}
+  if(!n||args.length>3)throw Error('Usage: arpe share PROJECT [PERSON] [viewer|editor] [HOURS]');checkName(s,n);
+  if(!s.sharePort)throw Error('Run arpe share start PORT [HTTPS_ORIGIN] first');await startBoard(s);
   const response=await fetch(`${url(s)}/api/companies/${encodeURIComponent(n)}`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${s.token}`},body:JSON.stringify({op:'invite',person:args[0]||'Guest',role:args[1]||'viewer',ttlHours:args[2]===undefined?168:Number(args[2])})});
   const d=await response.json();if(!response.ok)throw Error(d.error||'Invite failed');
   console.log(`${s.shareOrigin||'http://'+[127,0,0,1].join('.')+':'+s.sharePort}/join#${n}/${d.token}`);
 }
 export async function main(args:string[]){const s=settings();const [cmd,n,...rest]=args;
-  switch(cmd){case 'new':if(n&&rest.length===2&&rest[0]==='--from')newRayFrom(s,n,rest[1]!);else if(n&&rest.length===1&&rest[0]!=='--from')newRay(s,n,rest[0]!);else throw new Error('Usage: ray new NAME "MISSION" | ray new NAME --from TEMPLATE');break;
-  case 'note':if(!n||rest.length!==3)throw Error('Usage: ray note TO FROM SLUG FILE|-');console.log(sendNote(s.root,n,rest[0]!,rest[1]!,readFileSync(rest[2]==='-'?0:rest[2]!,'utf8')).file);break;
+  switch(cmd){case 'new':if(n&&rest.length===2&&rest[0]==='--from')newRayFrom(s,n,rest[1]!);else if(n&&rest.length===1&&rest[0]!=='--from')newRay(s,n,rest[0]!);else throw new Error('Usage: arpe new NAME "MISSION" | arpe new NAME --from TEMPLATE');break;
+  case 'note':if(!n||rest.length!==3)throw Error('Usage: arpe note TO FROM SLUG FILE|-');console.log(sendNote(s.root,n,rest[0]!,rest[1]!,readFileSync(rest[2]==='-'?0:rest[2]!,'utf8')).file);break;
   case 'share':await share(s,n,rest);break;
-  case 'list':if(n)throw new Error('Usage: ray list');for(const name of projectNames(s.root))console.log(name);break;
-  case 'board':if(rest.length)throw new Error('Usage: ray board [NAME]');if(n)checkName(s,n);await startBoard(s);browser(s,n);break;
-  case 'open':if(!n||rest.length)throw new Error('Usage: ray open NAME');await openRay(s,n);break;
-  case 'stop':if(!n||rest.length)throw new Error('Usage: ray stop NAME');await stop(s,n);break;
-  case 'restore':if(n)throw new Error('Usage: ray restore');await restore(s);break;
-  default:throw new Error('Usage: ray new|open|stop|board|list|restore|share|note');}
+  case 'list':if(n)throw new Error('Usage: arpe list');for(const name of projectNames(s.root))console.log(name);break;
+  case 'board':if(rest.length)throw new Error('Usage: arpe board [NAME]');if(n)checkName(s,n);await startBoard(s);browser(s,n);break;
+  case 'open':if(!n||rest.length)throw new Error('Usage: arpe open NAME');await openRay(s,n);break;
+  case 'stop':if(!n||rest.length)throw new Error('Usage: arpe stop NAME');await stop(s,n);break;
+  case 'restore':if(n)throw new Error('Usage: arpe restore');await restore(s);break;
+  default:throw new Error('Usage: arpe new|open|stop|board|list|restore|share|note');}
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2)).catch(e=>{console.error(e.message);process.exitCode=1;});

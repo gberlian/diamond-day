@@ -6,7 +6,7 @@
  * figures come from /board/doc-asset. Read-only; only .md files and images under the rays root. */
 import { existsSync, readdirSync, readFileSync, statSync, realpathSync } from "node:fs";
 import path from "node:path";
-const NOTIFICATION_TAG = "";
+import { NOTIFICATION_TAG } from "./decision-notifications.ts";
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 const IMG = /\.(png|jpe?g|gif|webp|svg)$/i;
@@ -27,8 +27,8 @@ export function safeUnder(root: string, rel: string): string | null {
   } catch { return null; }
 }
 
-const mdFiles = (dir: string) => { try { return readdirSync(dir, {withFileTypes:true}).filter(e=>e.isFile() && e.name.toLowerCase().endsWith(".md")).map(e=>e.name).sort(); } catch { return []; } };
-const dirs = (dir: string) => { try { return readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort(); } catch { return []; } };
+const mdFiles = (dir: string) => { try { return readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".md")).sort(); } catch { return []; } };
+const dirs = (dir: string) => { try { return readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory() || (d.isSymbolicLink() && (() => { try { return statSync(path.join(dir, d.name)).isDirectory(); } catch { return false; } })())).map((d) => d.name).sort(); } catch { return []; } };
 const mtime = (p: string) => { try { return statSync(p).mtimeMs; } catch { return 0; } };
 const titleOf = (file: string) => {
   try { const m = /^#\s+(.+)$/m.exec(readFileSync(file, "utf8").slice(0, 4000)); if (m) return m[1]!.replace(/[*_`]/g, "").trim(); } catch {}
@@ -56,7 +56,7 @@ export function listDocs(root: string, ray: string): RayDocs {
   return { ray, books, decisions, goals, changes };
 }
 
-export type DocTree = { label: string; path?: string; children?: DocTree[] };
+export type DocTree = { label: string; path?: string; children?: DocTree[]; mtime?: number; size?: number };
 /** Fixed sections; paths are ray-relative to the root and never follow directory symlinks. */
 export function projectDocTree(root: string, ray: string): DocTree[] {
   const base = safeUnder(root, ray);
@@ -64,7 +64,9 @@ export function projectDocTree(root: string, ray: string): DocTree[] {
   const rel = (name: string) => `${ray}/${name}`;
   const file = (name: string, label = name.split("/").at(-1)!): DocTree | null => {
     const abs = safeUnder(base, name);
-    return abs && statSync(abs).isFile() ? { label, path: rel(name) } : null;
+    if (!abs) return null;
+    const st = statSync(abs);
+    return st.isFile() ? { label, path: rel(name), mtime: st.mtimeMs, size: st.size } : null;
   };
   const walk = (name: string, skip: Set<string> = new Set(), newest = false): DocTree[] => {
     const abs = safeUnder(base, name);
@@ -91,14 +93,20 @@ export function projectDocTree(root: string, ray: string): DocTree[] {
     for (const e of entries) {
       if (e.isDirectory()) {
         const name = `${folder}/${e.name}`, children = walk(name);
-        if (children.length) books.push({label:e.name, path:rel(name), children});
+        if (children.length) {
+          const leaves = (nodes: DocTree[]): DocTree[] => nodes.flatMap(n => n.children ? leaves(n.children) : [n]);
+          const files = leaves(children);
+          books.push({label:e.name, path:rel(name), children, mtime: Math.max(...files.map(n => n.mtime ?? 0)), size: files.reduce((sum,n) => sum + (n.size ?? 0), 0)});
+        }
       } else if (e.isFile() && /\.md$/i.test(e.name)) { const node = file(`${folder}/${e.name}`); if (node) books.push(node); }
     }
   }
   return [file("README.md","README"), file("GOALS.md","GOALS"),
-    resumes.length ? file("plans/" + resumes[0], "Resume · " + resumes[0]) : file("plans/resume.md", "Resume"),
+    resumes.length ? file("plans/" + resumes[0], "Resume · " + resumes[0]) : null,
+    {label:"Notes", children:mdFiles(path.join(base, "plans")).filter(n => /^\d{4}-\d{2}-\d{2}-.*from-/.test(n)).sort().reverse()
+      .map(n => file("plans/" + n, n.replace(/^(\d{4}-\d{2}-\d{2})-(?:\d{4}-)?from-([a-z0-9]+)-?(.*)\.md$/, (_m, d, who, what) => `${d.slice(5)} · ${who} · ${what.replace(/-/g, " ")}`)))
+      .filter((x): x is DocTree => x !== null)},
     {label:"Decisions", children:walk("decisions",new Set(["pending","answered","images"]),true)},
-    {label:"Insights", children:walk("insights",new Set(),true)},
     {label:"Changes", children:walk("docs/changes",new Set(),true)},
     {label:"Docs", children:walk("docs",new Set(["changes","books"]))},
     {label:"Books", children:books}].filter((x): x is DocTree => x !== null);
@@ -109,9 +117,11 @@ html, body { margin:0; background:var(--ink); color:var(--text); font:400 16px/1
 nav { display:flex; gap:16px; padding:12px 18px; border-bottom:1px solid var(--rule); background:var(--row); flex-wrap:wrap; } nav a { color:var(--soft); text-decoration:none; } nav a.on { color:var(--text); font-weight:600; }
 a { color:var(--done); }`;
 const HEAD = (title: string) => `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title>
-`;
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">`;
 
 export function renderDocsIndex(root: string, rays: string[], only: string | null): string {
+  const manifesto = path.join(root, "toolset", "docs", "manifesto", "book");
+  const chapters = mdFiles(manifesto).map((f) => ({ rel: `toolset/docs/manifesto/book/${f}`, title: titleOf(path.join(manifesto, f)) }));
   const list = (es: Entry[]) => es.map((e) => `<li><a href="/board/doc?path=${encodeURIComponent(e.rel)}">${esc(e.title)}</a></li>`).join("");
   const shown = only ? rays.filter((r) => r === only) : rays;
   const sections = shown.map((r) => listDocs(root, r)).filter((d) => d.books.length + d.decisions.length + d.goals.length + d.changes.length)
@@ -125,12 +135,13 @@ main { padding:8px 18px 40px; max-width:1100px; } h2 { font-size:21px; margin:22
 ul { margin:0; padding-left:18px; columns: 2 420px; } li { break-inside: avoid; } li a { color:var(--text); text-decoration:none; } li a:hover { color:var(--done); }
 .manifesto { margin-top:14px; padding:12px 16px; border:1px solid var(--busy); border-radius:6px; background:var(--row); }
 .manifesto h2 { margin-top:0; } .manifesto p { color:var(--soft); margin:2px 0 8px; }</style>
-<nav><a href="/board">board</a><a class="${only ? "" : "on"}" href="/board/docs">all docs</a>${rays.map((r) => `<a class="${only === r ? "on" : ""}" href="/board/docs?ray=${encodeURIComponent(r)}">${esc(r)}</a>`).join("")}</nav>
-<main>${sections || "<p>No documents yet.</p>"}</main>${NOTIFICATION_TAG}</html>`;
+<nav><a href="/board">board</a><a href="/board/jobs">jobs</a><a class="${only ? "" : "on"}" href="/board/docs">all docs</a>${rays.map((r) => `<a class="${only === r ? "on" : ""}" href="/board/docs?ray=${encodeURIComponent(r)}">${esc(r)}</a>`).join("")}</nav>
+<main>${chapters.length ? `<section class="manifesto"><h2><a href="/board/doc?path=${encodeURIComponent("toolset/docs/manifesto/book")}" style="color:var(--text);text-decoration:none">Manifesto</a></h2><p>How we work, and how every note should read.</p><ul>${chapters.map((c) => `<li><a href="/board/doc?path=${encodeURIComponent(c.rel)}">${esc(c.title)}</a></li>`).join("")}</ul></section>` : ""}
+${sections || "<p>No documents yet.</p>"}</main>${NOTIFICATION_TAG}</html>`;
 }
 
 /** One document: a .md file, or a folder rendered as one document (book: front.md, then chapters/*.md; else its *.md). */
-export function renderDoc(root: string, rel: string, fragment = false): Response {
+export function renderDoc(root: string, rel: string, fragment = false, projectRay?: string): Response {
   const abs = safeUnder(root, rel);
   if (!abs || !existsSync(abs)) return new Response("not found", { status: 404 });
   let parts: { rel: string; text: string }[] = [];
@@ -144,7 +155,7 @@ export function renderDoc(root: string, rel: string, fragment = false): Response
       return child && statSync(child).isFile() && statSync(child).size < 4 * 1024 * 1024
         ? [{ rel: `${rel}/${f}`, text: readFileSync(child, "utf8") }] : [];
     });
-  } else if (abs.toLowerCase().endsWith(".md") && st.size < 4 * 1024 * 1024) {
+  } else if (/\.(md|markdown)$/i.test(abs) && st.size < 4 * 1024 * 1024) {
     parts = [{ rel, text: readFileSync(abs, "utf8") }];
   } else return new Response("only Markdown documents", { status: 400 });
   if (!parts.length) return new Response("empty", { status: 404 });
@@ -154,12 +165,12 @@ export function renderDoc(root: string, rel: string, fragment = false): Response
   const content = `<article class="board-document" id="doc"></article>
 <script type="application/json" id="doc-data">${data}</script>`;
   if (fragment) return new Response(content, {headers: {"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
-  return new Response(`${HEAD(title)}<style>${STYLE}${DOC_STYLE}@media print { html, body { background:#fff !important; color:#111 !important; } nav, header.top { display:none !important; } a { color:#111 !important; } }</style>
-<nav><a href="/board">board</a><a href="/board/docs">all docs</a><a href="/board/docs?ray=${encodeURIComponent(up)}">${esc(up)}</a></nav>
+  return new Response(`${HEAD(title)}<style>${STYLE}${DOC_STYLE}@media print { html, body { background:#fff !important; color:#111 !important; } nav, header.top { display:none !important; } .board-document, .board-document p, .board-document li, .board-document strong, a { color:#111 !important; } .board-document code, .board-document pre { background:#eee !important; } }</style>
+${projectRay ? `<nav><a href="/board/p/${encodeURIComponent(projectRay)}">${esc(projectRay)}</a></nav>` : `<nav><a href="/board">board</a><a href="/board/docs">all docs</a><a href="/board/docs?ray=${encodeURIComponent(up)}">${esc(up)}</a></nav>`}
 ${content}
 <script type="module">${DOC_RENDER_JS}
-renderBoardDocument(document.getElementById("doc"), JSON.parse(document.getElementById("doc-data").textContent)).then(() => { if (new URLSearchParams(location.search).get("print")) setTimeout(() => print(), 700); });
-</script>${NOTIFICATION_TAG}</html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+renderBoardDocument(document.getElementById("doc"), JSON.parse(document.getElementById("doc-data").textContent), ${JSON.stringify(projectRay ?? null)}).then(() => { const q = new URLSearchParams(location.search); if (q.get("print") || q.get("pdf")) setTimeout(() => print(), 700); });
+</script>${projectRay ? "" : NOTIFICATION_TAG}</html>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
 
 export const DOC_STYLE = `.board-document { max-width: 76ch; margin: 0 auto; padding: 24px 20px 80px; font: 400 18px/1.65 "Source Serif 4", Georgia, serif; color: var(--text); }
@@ -170,17 +181,18 @@ export const DOC_STYLE = `.board-document { max-width: 76ch; margin: 0 auto; pad
 .board-document table { border-collapse: collapse; font: 15px/1.4 "Barlow Semi Condensed", sans-serif; } .board-document td, .board-document th { border: 1px solid var(--rule); padding: 4px 8px; }
 .part + .part { border-top: 1px solid var(--rule); margin-top: 40px; padding-top: 8px; }
 .raw { white-space: pre-wrap; }`;
-export const DOC_RENDER_JS = `async function renderBoardDocument(doc, parts) {
-// No external renderer is required for the starter. Display Markdown as safe text.
+export const DOC_RENDER_JS = `async function renderBoardDocument(doc, parts, ray) {
 let md = null;
+try { const L = await import("/board/vendor/libs.js"); if (L.MarkdownIt) md = new L.MarkdownIt({ html: false, linkify: true, typographer: true }); } catch {}
+const docHref = (p, asset) => ray ? "/api/board/project/" + encodeURIComponent(ray) + (asset ? "/doc-asset?path=" : "/doc?view=1&path=") + encodeURIComponent(p) : (asset ? "/board/doc-asset?path=" : "/board/doc?path=") + encodeURIComponent(p);
 const dirOf = (p) => p.split("/").slice(0, -1).join("/");
 const join = (base, rel) => { const out = base.split("/"); for (const s of rel.split("/")) { if (s === "..") out.pop(); else if (s && s !== ".") out.push(s); } return out.join("/"); };
 for (const p of parts) {
   const div = document.createElement("div"); div.className = "part";
   if (md) div.innerHTML = md.render(p.text); else { div.className += " raw"; div.textContent = p.text; }
   // Relative images and links resolve inside the rays root.
-  for (const img of div.querySelectorAll("img[src]")) { const s = img.getAttribute("src"); if (!/^(https?:|data:|\\/)/.test(s)) img.src = "/board/doc-asset?path=" + encodeURIComponent(join(dirOf(p.rel), s)); }
-  for (const a of div.querySelectorAll("a[href]")) { const h = a.getAttribute("href"); if (/\\.md(#.*)?$/i.test(h) && !/^(https?:|\\/)/.test(h)) a.href = "/board/doc?path=" + encodeURIComponent(join(dirOf(p.rel), h.replace(/#.*$/, ""))); }
+  for (const img of div.querySelectorAll("img[src]")) { const s = img.getAttribute("src"); if (!/^(https?:|data:|\\/)/.test(s)) img.src = docHref(join(dirOf(p.rel), s), true); }
+  for (const a of div.querySelectorAll("a[href]")) { const h = a.getAttribute("href"); if (/\\.md(#.*)?$/i.test(h) && !/^(https?:|\\/)/.test(h)) a.href = docHref(join(dirOf(p.rel), h.replace(/#.*$/, "")), false); }
   doc.appendChild(div);
 }
 }`;

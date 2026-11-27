@@ -94,7 +94,7 @@ On the board, find the card associated with the job and its current state. A ret
 
 ## Try the local board
 
-Follow the [README installation instructions](../README.md#the-board). Create a ray with `ray new` and start a separately installed agent with `ray open`. Open the project's goals, replace the starter Result with an outcome you need and attach its actual Check. Use the [resume template](../templates/resume-note.md) and [handoff guide](../guides/handoffs.md) when the project grows.
+Follow the [README installation instructions](../README.md#the-board). Create a ray with `arpe new` and start a separately installed agent with `arpe open`. Open the project's goals, replace the starter Result with an outcome you need and attach its actual Check. Use the [resume template](../templates/resume-note.md) and [handoff guide](../guides/handoffs.md) when the project grows.
 
 ![Two paths through the same agent task: accumulating chat versus recorded execution and evidence](img/lost-vs-structured.svg)
 

@@ -8,4 +8,4 @@ The coordinator's first Check is `node ../tools/check-rays.mjs ..`: every active
 
 After routing or reviewing work, update the coordinator's resume note, run `node ../tools/board.mjs ..`, and open `../board.html`. The generated board lists the written goals and their Now/Next values; it does not start agents or poll checks. A live board and restarter can be attached later; see [optional integrations](board-and-viewer.md).
 
-Keep each ray's authorized repositories in its README. Requests involving another ray's repository go to that ray as a note. If no ray fits, propose adding a new one with `ray new NAME "Mission"` (RPM board) or `install.sh --legacy --ray NAME` / `install.ps1 -Legacy -Ray NAME` (original workflow), which preserves existing files.
+Keep each ray's authorized repositories in its README. Requests involving another ray's repository go to that ray as a note. If no ray fits, propose adding a new one with `arpe new NAME "Mission"` (RPM board) or `install.sh --legacy --ray NAME` / `install.ps1 -Legacy -Ray NAME` (original workflow), which preserves existing files.

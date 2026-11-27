@@ -5,8 +5,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { safeUnder } from "./docs-page.ts";
 
-export type LibraryItem = { title: string; text?: string; date: string; path: string };
-export type Library = { insights: LibraryItem[]; decisions: LibraryItem[]; documents: LibraryItem[]; notes: LibraryItem[]; plans: LibraryItem[]; changes: LibraryItem[] };
+export type LibraryItem = { title: string; text?: string; date: string; path: string; pdf?: string; bytes?: number; size?: number; mtime?: number };
+export type Library = { insights: LibraryItem[]; decisions: LibraryItem[]; documents: LibraryItem[]; notes?: LibraryItem[]; plans?: LibraryItem[]; changes?: LibraryItem[] };
 
 const DATE = /^(\d{4}-\d{2}-\d{2})/;
 function read(abs: string) { try { return readFileSync(abs, "utf8"); } catch { return ""; } }
@@ -35,18 +35,43 @@ function walk(abs: string, rel: string, skip: Set<string>, out: { rel: string; m
   }
 }
 
+/** The prepared PDF of a document or book, ray-relative (owner 26 Nov: the PDF link printed raw Markdown). */
+export function builtPdf(base: string, rel: string): string | null {
+  const abs = path.join(base, rel), stem = rel.replace(/\.md$/i, "");
+  const dirs = /\.md$/i.test(rel) ? [path.dirname(rel), path.dirname(rel) + "/build"] : [rel + "/build", rel];
+  const want = path.basename(stem).toLowerCase();
+  let best: { rel: string; mtime: number } | null = null;
+  for (const d of dirs) {
+    try {
+      for (const e of readdirSync(path.join(base, d), { withFileTypes: true })) {
+        if (!e.isFile() || !/\.pdf$/i.test(e.name)) continue;
+        if (/\.md$/i.test(rel) && e.name.replace(/\.pdf$/i, "").toLowerCase() !== want) continue;
+        const candidate = path.posix.join(d, e.name);
+        const safe = safeUnder(base, candidate); if (!safe) continue;
+        const m = statSync(safe).mtimeMs;
+        if (!best || m > best.mtime) best = { rel: candidate, mtime: m };
+      }
+    } catch {}
+  }
+  void abs; return best?.rel ?? null;
+}
+function sizeOf(abs: string): number {
+  try { const st = statSync(abs); if (st.isFile()) return st.size;
+    let n = 0; for (const e of readdirSync(abs, { withFileTypes: true, recursive: true } as any) as any[])
+      if (e.isFile?.() && /\.md$/i.test(e.name)) try { n += statSync(path.join(e.parentPath ?? e.path, e.name)).size; } catch {}
+    return n; } catch { return 0; }
+}
 export function projectLibrary(root: string, ray: string): Library {
   const base = safeUnder(root, ray);
-  if (!base || !/^[A-Za-z0-9][\w.-]*$/.test(ray)) return { insights: [], decisions: [], documents: [], notes: [], plans: [], changes: [] };
+  if (!base || !/^[A-Za-z0-9][\w.-]*$/.test(ray)) return { insights: [], decisions: [], documents: [] };
   const dated = (folder: string, withText: boolean): LibraryItem[] =>
-    mdIn(safeUnder(base, folder) ?? "").sort().reverse().flatMap((name) => {
-      const abs = safeUnder(base, `${folder}/${name}`); if (!abs) return [];
-      const text = read(abs);
-      return [{ title: titleOf(text, name), ...(withText ? { text: firstParagraph(text) } : {}),
-        date: DATE.exec(name)?.[1] ?? "", path: `${ray}/${folder}/${name}` }];
+    mdIn(path.join(base, folder)).sort().reverse().map((name) => {
+      const text = read(path.join(base, folder, name));
+      return { title: titleOf(text, name), ...(withText ? { text: firstParagraph(text) } : {}),
+        date: DATE.exec(name)?.[1] ?? "", path: `${ray}/${folder}/${name}` };
     });
   const docs: { rel: string; mtime: number }[] = [];
-  walk(safeUnder(base, "docs") ?? "", "docs", new Set(["docs/changes", "docs/reference", "docs/internal"]), docs);
+  walk(path.join(base, "docs"), "docs", new Set(["docs/changes", "docs/reference", "docs/internal"]), docs);
   // A book's chapters show as one document: its chapters folder.
   const books = new Map<string, number>(), singles: { rel: string; mtime: number }[] = [];
   for (const d of docs) {
@@ -56,11 +81,24 @@ export function projectLibrary(root: string, ray: string): Library {
   const documents = [
     ...[...books].map(([rel, mtime]) => ({ title: rel.split("/").at(-1)!.replace(/[-_]+/g, " "), rel, mtime })),
     ...singles.map((d) => ({ title: titleOf(read(path.join(base, d.rel)), d.rel.split("/").at(-1)!), rel: d.rel, mtime: d.mtime })),
-  ].sort((a, b) => b.mtime - a.mtime).slice(0, 40)
-    .map((d) => ({ title: d.title, date: new Date(d.mtime).toISOString().slice(0, 10), path: `${ray}/${d.rel}` }));
-  const allPlans=dated("plans",false);
-  const notes=allPlans.filter(x=>/-from-/.test(x.path));
-  const plans=allPlans.filter(x=>!/-from-/.test(x.path));
-  const changes=[...dated("docs/changes",false).filter(x=>!/-full\.md$/.test(x.path)),...dated("docs/changes/chat",false)].sort((a,b)=>b.path.split('/').at(-1)!.localeCompare(a.path.split('/').at(-1)!));
+  ].sort((a, b) => b.mtime - a.mtime)
+    .map((d) => {
+      const size = sizeOf(path.join(base, d.rel)), pdf = builtPdf(base, d.rel);
+      return { title: d.title, date: new Date(d.mtime).toISOString().slice(0, 10), path: `${ray}/${d.rel}`, mtime: d.mtime,
+        bytes: size, size, ...(pdf ? { pdf } : {}) };
+    });
+  // Notes other rays (or the owner) left in plans/: YYYY-MM-DD[-HHMM]-from-<who>-<what>.md, newest first.
+  const notes = mdIn(path.join(base, "plans")).filter((n) => /^\d{4}-\d{2}-\d{2}-(?:\d{4}-)?from-/.test(n)).sort().reverse().map((name) => {
+    const who = /from-([a-z0-9]+)/.exec(name)?.[1] ?? "";
+    return { title: `${who}: ${titleOf(read(path.join(base, "plans", name)), name).replace(/^from [a-z0-9-]+,?\s*/i, "").replace(/^owner,?\s*/i, "").replace(/^\(?(?:\d{1,2} [A-Za-z]{3,9},? )?~?\d{1,2}:\d{2}\)?:?\s*/, "").replace(/^\d{1,2} [A-Za-z]{3,9}:\s*/, "").replace(/^:\s*/, "")}`,
+      date: DATE.exec(name)?.[1] ?? "", path: `${ray}/plans/${name}` };
+  });
+  // Owner 27 Nov: plans, change notes and long chat replies were invisible on the board.
+  const plans = mdIn(path.join(base, "plans")).filter((n) => !/-from-/.test(n)).sort().reverse()
+    .map((name) => ({ title: titleOf(read(path.join(base, "plans", name)), name), date: DATE.exec(name)?.[1] ?? "", path: `${ray}/plans/${name}` }));
+  const changes = [...mdIn(path.join(base, "docs", "changes")).filter((n) => !/-full\.md$/.test(n)).map((n) => ["docs/changes", n, ""]),
+    ...mdIn(path.join(base, "docs", "changes", "chat")).map((n) => ["docs/changes/chat", n, "chat · "])]
+    .sort((x, y) => y[1]!.localeCompare(x[1]!))
+    .map(([dir, name, tag]) => ({ title: tag + titleOf(read(path.join(base, dir!, name!)), name!), date: DATE.exec(name!)?.[1] ?? "", path: `${ray}/${dir}/${name}` }));
   return { insights: dated("insights", true), decisions: dated("decisions", false), documents, notes, plans, changes };
 }

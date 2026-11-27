@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { home, installDir, settings, url, type Settings } from './config.ts';
 import { validName } from './projects.ts';
-import { newRay } from './ray-cli.ts';
+import { newRay } from './arpe-cli.ts';
 import { startBoard, stopBoard } from './service.ts';
 const source=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const dir=installDir(), file=path.join(dir,'settings.json');
@@ -32,7 +32,7 @@ function profiles(add:boolean) {
   }
 }
 function copyMissing(from:string,to:string){if(existsSync(to))return;cpSync(from,to,{recursive:true,errorOnExist:true,force:false});}
-async function install(args:string[]){let root=process.env.RAYS_ROOT||path.join(home(),'rays'), port=Number(process.env.RAY_BOARD_PORT||5195),agent='claude-code';const extra:string[]=[];
+async function install(args:string[]){const previous=existsSync(file)?settings():null;let root=process.env.RAYS_ROOT||previous?.root||path.join(home(),'rays'), port=Number(process.env.RAY_BOARD_PORT||previous?.port||5195),agent=previous?.agent||'claude-code';const extra:string[]=[];
   for(let i=0;i<args.length;i++){const a=args[i]!.toLowerCase();if(a==='--root'||a==='-root')root=args[++i]!;else if(a==='--port'||a==='-port')port=Number(args[++i]);else if(a==='--agent'||a==='-agent')agent=args[++i]!;else if(a==='--ray'||a==='-ray')extra.push(args[++i]!);else if(a==='--demo'||a==='-demo'){}else throw new Error(`Unknown option ${args[i]}`);}
   root=path.resolve(root);if(!Number.isInteger(port)||port<1||port>65535)throw new Error('Invalid port');if(!['claude-code','codex','claude-desktop'].includes(agent))throw new Error('Invalid agent');
   const within=(base:string,child:string)=>{const r=path.relative(base,child);return r===''||(!path.isAbsolute(r)&&r!=='..'&&!r.startsWith('..'+path.sep));};
@@ -45,18 +45,21 @@ async function install(args:string[]){let root=process.env.RAYS_ROOT||path.join(
   if(old&&readdirSync(dir).some(n=>/^session-.*\.json$/.test(n)))throw new Error("Stop managed sessions before reinstalling");
   if(old)await stopBoard(old);
   const runtime=process.execPath,runtimeArgs=process.versions.bun?[]:['--experimental-strip-types','--disable-warning=ExperimentalWarning'];
-  const s:Settings={root,port,agent,runtime,runtimeArgs,token:old?.token||randomUUID(),sharePort:old?.sharePort,shareOrigin:old?.shareOrigin,claudeProjectsDir:old?.claudeProjectsDir,usageProxyDb:old?.usageProxyDb,usageProxyPrices:old?.usageProxyPrices,ownsRoot:old?.ownsRoot??!existsSync(root)};
+  const s:Settings={root,port,agent,runtime,runtimeArgs,token:old?.token||randomUUID(),sharePort:old?.sharePort,shareOrigin:old?.shareOrigin,claudeProjectsDir:old?.claudeProjectsDir,usageProxyDb:old?.usageProxyDb,usageProxyPrices:old?.usageProxyPrices,integrations:old?.integrations??{handoffQueues:{enabled:false},usageProxy:{enabled:false},restarter:{enabled:false},diskStatus:{enabled:false},codexGate:{enabled:false},ledger:{enabled:false},chatAsk:{enabled:false},openWith:"off"},codeRoot:old?.codeRoot,ownsRoot:old?.ownsRoot??!existsSync(root)};
   mkdirSync(dir,{recursive:true});mkdirSync(path.join(dir,'bin'),{recursive:true});
   for(const name of ['board']){const dest=path.join(dir,name);if(path.resolve(source,name)!==dest){rmSync(dest,{recursive:true,force:true});cpSync(path.join(source,name),dest,{recursive:true});}}
   mkdirSync(path.join(dir,'tools'),{recursive:true});cpSync(path.join(source,'tools','rpm-check.ts'),path.join(dir,'tools','rpm-check.ts'));
   writeFileSync(file,JSON.stringify(s,null,2)+'\n',{mode:0o600});mkdirSync(root,{recursive:true});
   copyMissing(path.join(source,'templates'),path.join(root,'templates'));mkdirSync(path.join(root,'tools'),{recursive:true});
   for(const n of ['rpm-check.ts','check-goals.mjs','check-rays.mjs','checks.mjs','board.mjs','open-note.mjs','diamond.mjs','diamond-hook.mjs'])copyMissing(path.join(source,'tools',n),path.join(root,'tools',n));
-  if(!existsSync(path.join(root,'README.md')))writeFileSync(path.join(root,'README.md'),'# Rays\n\nOpen the shared board with `ray board`. Create a project with `ray new NAME "Mission"`. The active list is rays.txt; project GOALS.md files are the source of truth. Edit those files and keep each resume note current.\n');
+  if(!existsSync(path.join(root,'README.md')))writeFileSync(path.join(root,'README.md'),'# Rays\n\nOpen the shared board with `arpe board`. Create a project with `arpe new NAME "Mission"`. The active list is rays.txt; project GOALS.md files are the source of truth. Edit those files and keep each resume note current.\n');
   for(const name of [...new Set(['demo',...extra])])if(!existsSync(path.join(root,name,'GOALS.md')))newRay(s,name,name==='demo'?'A small demo of the RPM board':`Improve ${name}`);
-  const entry=path.join(dir,'board','src','ray-cli.ts');
-  if(process.platform==='win32')writeFileSync(path.join(dir,'bin','ray.cmd'),`@echo off\r\n"${runtime}" ${runtimeArgs.join(' ')} "${entry}" %*\r\n`);
-  else writeFileSync(path.join(dir,'bin','ray'),`#!/usr/bin/env bash\nexec ${[runtime,...runtimeArgs,entry].map(sh).join(' ')} "$@"\n`,{mode:0o755});
+  const entry=path.join(dir,'board','src','arpe-cli.ts');
+  if(process.platform==='win32')writeFileSync(path.join(dir,'bin','arpe.cmd'),`@echo off\r\n"${runtime}" ${runtimeArgs.join(' ')} "${entry}" %*\r\n`);
+  else writeFileSync(path.join(dir,'bin','arpe'),`#!/usr/bin/env bash\nexec ${[runtime,...runtimeArgs,entry].map(sh).join(' ')} "$@"\n`,{mode:0o755});
+  // Compatibility wrapper: stderr keeps machine-readable stdout unchanged.
+  if(process.platform==='win32')writeFileSync(path.join(dir,'bin','ray.cmd'),`@echo off\r\necho ray has been renamed to arpe. 1>&2\r\ncall "%~dp0arpe.cmd" %*\r\nexit /b %errorlevel%\r\n`);
+  else writeFileSync(path.join(dir,'bin','ray'),`#!/usr/bin/env bash\nprintf '%s\\n' 'ray has been renamed to arpe.' >&2\nexec ${sh(path.join(dir,'bin','arpe'))} "$@"\n`,{mode:0o755});
   // Make the downloaded Bun available through the same managed PATH as ray.
   if(process.versions.bun && runtime.startsWith(path.join(dir,'bun')+path.sep)){
     if(process.platform==='win32')writeFileSync(path.join(dir,'bin','bun.cmd'),`@echo off\r\n"${runtime}" %*\r\n`);

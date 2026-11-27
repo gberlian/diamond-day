@@ -2,10 +2,11 @@
  * numbered results, each with Result, Purpose and a Plan of '  - [x]/[~]/[ ]' steps. This module
  * parses that shape and makes small, scoped text edits to it; everything else in the file is kept. */
 import { parseGoals } from "./goals.ts";
+import { parseAssignment } from "./pickup.ts";
 
 export type Mark = " " | "x" | "~";
-export type Step = { index: number; mark: Mark; must: boolean; text: string; who: string | null; dur: string | null; raw: string; proof?: string; decision?: string };
-export type RpmResult = { id: string; title: string; result: string; purpose: string; check: string; now: string; steps: Step[] };
+export type Step = { index: number; mark: Mark; must: boolean; text: string; who: string | null; dur: string | null; owners: string[]; duration: string | null; shared: boolean; raw: string; proof?: string; proofs: string[]; decision?: string };
+export type RpmResult = { id: string; title: string; result: string; purpose: string; now: string; steps: Step[] };
 export type Rpm = { name: string; vision: string; purpose: string; roles: string; week: string; results: RpmResult[] };
 export type HeaderKey = "vision" | "purpose" | "roles";
 export type ResultKey = "title" | "result" | "purpose" | "now";
@@ -20,24 +21,16 @@ const STEP = /^(\s+[-*+]\s+)\[( |x|X|~)\]\s?(.*)$/;
 const NUMBERED = /^##\s+(\d+)\s*[.)]\s*(.*?)\s*$/;
 const oneLine = (s: string) => String(s ?? "").replace(/\r/g, "").replace(/\s*\n\s*/g, " ").replace(/\0/g, "").trim();
 
-/** Split 'text (who, 2h)' into who and duration; who is the first word of the trailing parenthesis. */
+/** Keep the original scalar who/dur/proof fields for existing consumers; expose all assignments and proofs too. */
 export function parseStep(raw: string, index: number, mark: Mark): Step {
   let text = raw.trim();
-  const must = /^\*\s+/.test(text);
-  if (must) text = text.replace(/^\*\s+/, "");
-  let who: string | null = null, dur: string | null = null;
-  const paren = /\(([^()]*)\)\s*$/.exec(text);
-  if (paren) {
-    const inner = paren[1]!;
-    const first = /^\s*(session|sub-agent|subagent|handoff|owner|agent|claude|chatgpt)\b/i.exec(inner)?.[1];
-    const times = [...inner.matchAll(/\b(\d+(?:\.\d+)?\s*(?:m|min|h|d|w))\b|\bdone\b/gi)].map((m) => m[0].replace(/\s+/g, ""));
-    if (first || times.length) {
-      who = first ? first.toLowerCase() : null;
-      dur = times.length ? [...new Set(times)].join("+") : null;
-      text = text.slice(0, paren.index).trim();
-    }
-  }
-  return { index, mark, must, text, who, dur, raw: raw.trim() };
+  const must = /^\*/.test(text);
+  if (must) text = text.replace(/^\*\s*/, "");
+  const assignment = parseAssignment(text);
+  const times = assignment.durations.flatMap(d => [...d.matchAll(/\b(\d+(?:\.\d+)?\s*(?:min|m|h|d|w))\b|\bdone\b/gi)].map(m => m[0].replace(/\s+/g, "")));
+  return { index, mark, must, text: assignment.text, who: assignment.owners[0] ?? null,
+    dur: times.length ? [...new Set(times)].join("+") : null, owners: assignment.owners,
+    duration: assignment.durations.join(" + ") || null, shared: assignment.shared, raw: raw.trim(), proofs: [] };
 }
 
 type Lines = { lines: string[]; eol: string };
@@ -83,12 +76,15 @@ export function parseRpm(md: string, ray: string): Rpm {
       const step = parseStep(m[3]!, n, (m[2]!.toLowerCase() as Mark));
       for (let j = i + 1; j < metadataEnd(lines, i); j++) {
         const [, key, value] = metadata.exec(lines[j]!)!;
-        if (key!.toLowerCase() === "proof") step.proof = value!.trim();
+        if (key!.toLowerCase() === "proof") {
+          step.proofs.push(value!.trim());
+          step.proof = step.proofs.join("\n");
+        }
         if (key!.toLowerCase() === "decision" && decisionId.test(value!.trim())) step.decision = value!.trim();
       }
       return step;
     }) : [];
-    return { id: g.id, title: g.title, result: oneLine(g.result ?? g.want ?? ""), purpose: oneLine(g.purpose ?? ""), check: oneLine(g.check ?? ""), now: oneLine(g.now ?? ""), steps };
+    return { id: g.id, title: g.title, result: oneLine(g.result ?? g.want ?? ""), purpose: oneLine(g.purpose ?? ""), now: oneLine(g.now ?? ""), steps };
   });
   return { name: goals.name, vision: header("vision"), purpose: header("purpose"), roles: header("roles"), week, results };
 }

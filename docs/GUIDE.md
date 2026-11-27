@@ -23,7 +23,7 @@
 
 *Drawing of the board at the owner-review stage and the page it controls. The four numbers change every second. A star marks a card that must be done.*
 
-ARPE stands for Agentic Result-oriented Purpose-driven Execution. Install the kit and you get a board on your computer, a command called `ray` to create and open projects, and a folder for each project. The board turns the project's plain-text plan into three columns. An agent is a program that can read and edit your project, run tests and record what happened. You choose the outcome and why it matters; the agent chooses and carries out the work.
+ARPE stands for Agentic Result-oriented Purpose-driven Execution. Install the kit and you get a board on your computer, a command called `arpe` to create and open projects, and a folder for each project. The board turns the project's plain-text plan into three columns. An agent is a program that can read and edit your project, run tests and record what happened. You choose the outcome and why it matters; the agent chooses and carries out the work.
 
 The example ships the original single-file countdown page from 26 November 2026. Its browser test checks five behaviours and takes pictures at 1280 and 390 pixels. Follow the walkthrough to recreate the project, make the decision on the board, and run the test on your own machine. The replay uses the saved page so everyone starts with identical code. With an agent you can also ask it to build independently against the same Result and Check; its implementation may differ.
 
@@ -48,8 +48,8 @@ These are the kit's board installation commands. The installer uses Bun, a progr
 From the new terminal, run:
 
 ```sh
-ray list
-ray board
+arpe list
+arpe board
 ```
 
 You should see `demo`, the small project installed by default, and the board in your browser. For the countdown example, install Chrome, Edge or Chromium if you do not already have one. The example's test uses the installed browser in the background; it has no additional package dependencies. No AI account is necessary for the replay. For a live agent session, install and sign in to Claude Code separately. The installer does not change its trust settings.
@@ -67,8 +67,8 @@ On 26 November 2026 the command saved these words at 14:28:38. The first goals f
 Return to the extracted repository folder and run the same command on all three systems:
 
 ```sh
-ray new arpe-demo --from examples/arpe-demo
-ray board arpe-demo
+arpe new arpe-demo --from examples/arpe-demo
+arpe board arpe-demo
 ```
 
 The command copies the example to your installed project root, normally `~/rays/arpe-demo`, and adds it to the active list. It refuses to overwrite a project. On the board you should see one Result, six cards, and 0/6 done. One card is running; the others are planned. The page and test are already in the project, ready to be checked. The original project created a separate code folder; this example keeps the code in `site/` to make the whole project portable.
@@ -85,7 +85,7 @@ On Windows PowerShell:
 Set-Location "$HOME/rays/arpe-demo"
 ```
 
-If you installed with a custom project root, use that location instead. The remaining commands work from this project folder. To have an agent run the replay, open another terminal and run `ray open arpe-demo`, approve access to this project when prompted, and give it the original sentence above followed by: “Read the project instructions and follow the reproducible walkthrough. Ask me on the board before publishing.” The instructions tell it exactly what to do. If running the example without an agent, execute each command yourself. Use only one of these paths at a time; two processes editing the same plan can lose proof.
+If you installed with a custom project root, use that location instead. The remaining commands work from this project folder. To have an agent run the replay, open another terminal and run `arpe open arpe-demo`, approve access to this project when prompted, and give it the original sentence above followed by: “Read the project instructions and follow the reproducible walkthrough. Ask me on the board before publishing.” The instructions tell it exactly what to do. If running the example without an agent, execute each command yourself. Use only one of these paths at a time; two processes editing the same plan can lose proof.
 
 Open `GOALS.md`. Its Result is the original measurable sentence from the repaired plan:
 
@@ -134,7 +134,7 @@ You can rerun the outcome Check directly any time:
 bun site/test/e2e.mjs
 ```
 
-The public RPM board displays the Check declaration and recorded proof; it does not run the browser test on a timer or provide a live PASS/STALE light. The command above is the authoritative current outcome check. Exit 0 and five PASS lines confirm it. The original private board ran the declared check automatically; it recorded 29 passing runs from 14:55 to 21:29 that day. Run checks again after changes and before reporting a result.
+The managed RPM board runs supported Check declarations automatically on startup and on a ten-minute cadence, subject to cooldown. Open a card’s Check tab to inspect the verdict and actual output; the command above also verifies the outcome directly. Exit 0 and five PASS lines confirm it. The original private board ran the declared check automatically; it recorded 29 passing runs from 14:55 to 21:29 that day. Run checks again after changes and before reporting a result.
 
 ### Answer the question on the board
 
@@ -160,16 +160,16 @@ The board now has six done cards and a seventh running case-log card, just as th
 bun replay.mjs close
 ```
 
-This reruns the declared Check, requires proof on the three must cards, writes one final case-log entry, marks its card done and saves the finished Result in `docs/completed-result.md`. The board shows 7/7. The method checker may flag that the finished plan should be replaced; this is expected. Save the completed record, then replace the Result with your next approved Result or retire this finished project. For a managed agent session, `ray stop arpe-demo` stops the agent without deleting the project or stopping the board. A project can stay on the board as a completed example. `ray restore` restarts the board and reopens active rays where a terminal is available, otherwise it prints resume commands.
+This reruns the declared Check, requires proof on the three must cards, writes one final case-log entry, marks its card done and saves the finished Result in `docs/completed-result.md`. The board shows 7/7. The method checker may flag that the finished plan should be replaced; this is expected. Save the completed record, then replace the Result with your next approved Result or retire this finished project. For a managed agent session, `arpe stop arpe-demo` stops the agent without deleting the project or stopping the board. A project can stay on the board as a completed example. `arpe restore` restarts the board and reopens active rays where a terminal is available, otherwise it prints resume commands.
 
 ## 4. Start your own project
 
 Choose a small useful outcome, not a list of jobs. For instance, create a page with opening hours and contact details for a club. From a terminal:
 
 ```sh
-ray new club-page "A public information page for our club"
-ray board club-page
-ray open club-page
+arpe new club-page "A public information page for our club"
+arpe board club-page
+arpe open club-page
 ```
 
 The first command writes a starter goal, project instructions and a resume note. The last command opens your agent in the project (Claude Code must be installed). Without an agent you can edit the Markdown files yourself. Give the agent the Result, the reason, and the boundary: make the page locally first; ask before publishing. Replace the generated first goal in `GOALS.md` with the following example; keep its header and update the weekly review date.
@@ -237,7 +237,7 @@ These are the original recorded milestones on 26 November 2026, in the owner's l
 | 20:44 | Historical system added a mechanism to notify a running session of answers. |
 | 22:20 | Owner decided the project should be a repeatable benchmark. |
 
-If the board is missing, run `ray board` again. If the command is not found, reopen the terminal to load the PATH. If a project was only partly made, check `ray list`, the folder and its resume note. The original command stopped during service restarts and left missing registration. A copy error in the new option refuses to overwrite existing work; inspect the folder rather than deleting it blindly. A missing agent executable means you need to install/sign in to the agent or use the replay commands yourself.
+If the board is missing, run `arpe board` again. If the command is not found, reopen the terminal to load the PATH. If a project was only partly made, check `arpe list`, the folder and its resume note. The original command stopped during service restarts and left missing registration. A copy error in the new option refuses to overwrite existing work; inspect the folder rather than deleting it blindly. A missing agent executable means you need to install/sign in to the agent or use the replay commands yourself.
 
 If the method check fails, read its hard-rule lines. The example's deliberately faulty starter reproduces the five failures; the repaired plan has enough cards, a runnable Check, one active card, a must and a current weekly review. Refresh the review when it is stale, based on real events. A score can still pass a vague Result or Purpose because some rules are soft; read the wording yourself.
 
@@ -253,8 +253,8 @@ If a card is done without proof, open it and request the actual output or file. 
 
 A shared company is one ray. The guest sees the Result, Purpose, Plan, and only the artifacts and decisions you publish. The owner board, other projects, chat, stats, and agent controls are not exposed.
 
-1. Install the kit using the command above. Create a project with `ray new demo2 "A small demo"` or use the installed `demo`. Review its GOALS.md, including every plan card and proof label. Do not share credentials or sensitive text.
-2. Start the separate loopback listener: `ray share start 5196`. Choose a free port different from the owner board. This saves `sharePort` in `~/.arpe/settings.json` and restarts the board. It starts again automatically when `ray board` starts the board. For a local test, run `ray share demo Guest viewer 1` and open the printed invitation in a browser on this computer.
+1. Install the kit using the command above. Create a project with `arpe new demo2 "A small demo"` or use the installed `demo`. Review its GOALS.md, including every plan card and proof label. Do not share credentials or sensitive text.
+2. Start the separate loopback listener: `arpe share start 5196`. Choose a free port different from the owner board. This saves `sharePort` in `~/.arpe/settings.json` and restarts the board. It starts again automatically when `arpe board` starts the board. For a local test, run `arpe share demo Guest viewer 1` and open the printed invitation in a browser on this computer.
 3. For another person, install Tailscale, enable HTTPS for your tailnet and restrict access to that person. Use Tailscale **Serve**, not Funnel. In PowerShell, run:
 
    ```powershell
@@ -263,16 +263,16 @@ A shared company is one ray. The guest sees the Result, Purpose, Plan, and only 
    tailscale serve status
    ```
 
-   In Bash, use `tailscale serve --bg "http://$(printf '%s.%s.%s.%s' 127 0 0 1):5196"`. Copy the HTTPS origin reported by Serve and run `ray share start 5196 HTTPS_ORIGIN`, replacing `HTTPS_ORIGIN` with that origin. Never proxy the owner board port. The listener binds only to IPv4 loopback; no firewall opening or direct Internet exposure is needed.
+   In Bash, use `tailscale serve --bg "http://$(printf '%s.%s.%s.%s' 127 0 0 1):5196"`. Copy the HTTPS origin reported by Serve and run `arpe share start 5196 HTTPS_ORIGIN`, replacing `HTTPS_ORIGIN` with that origin. Never proxy the owner board port. The listener binds only to IPv4 loopback; no firewall opening or direct Internet exposure is needed.
 4. Open **sharing** on the owner board. Select `demo`. Enter reviewed ray-relative artifact paths (for example `docs/design.md`) and decision IDs, one per line, and save the publication. Only supported presentation files under `docs/` or `decisions/images/` can be published; images used in decisions must also be individually published. Published files are live, so review later edits too. Raw queue files, credentials and private/internal paths are not served.
-5. Run `ray share demo Guest viewer 24` for a one-day viewer invitation, or use the sharing page. Replace `viewer` with `editor` to permit intent edits (Result/Purpose, new results and result ordering), comments and answers to published pending decisions. Execution cards remain agent-owned. Send the printed HTTPS link privately. The guest opens it while connected to Tailscale; the fragment token is exchanged for a company-scoped cookie. The token is reusable until expiry or revocation. The company URL without a token or cookie returns 404. The guest can refresh the shared page or connect it from their own board's sharing page.
-6. Revoke an invitation on the sharing page to invalidate its token and cookies. Use `ray share stop` to disable the guest listener and remove its setting; also disable the corresponding Tailscale Serve configuration. Stopping the listener does not revoke existing invitations. Uninstall stops both listeners. Keep `.board/` out of version control and protect your managed settings directory; invite hashes and connection tokens are stored locally. On Windows, use account-only directory permissions. Revocation cannot recall downloaded documents.
+5. Run `arpe share demo Guest viewer 24` for a one-day viewer invitation, or use the sharing page. Replace `viewer` with `editor` to permit intent edits (Result/Purpose, new results and result ordering), comments and answers to published pending decisions. Execution cards remain agent-owned. Send the printed HTTPS link privately. The guest opens it while connected to Tailscale; the fragment token is exchanged for a company-scoped cookie. The token is reusable until expiry or revocation. The company URL without a token or cookie returns 404. The guest can refresh the shared page or connect it from their own board's sharing page.
+6. Revoke an invitation on the sharing page to invalidate its token and cookies. Use `arpe share stop` to disable the guest listener and remove its setting; also disable the corresponding Tailscale Serve configuration. Stopping the listener does not revoke existing invitations. Uninstall stops both listeners. Keep `.board/` out of version control and protect your managed settings directory; invite hashes and connection tokens are stored locally. On Windows, use account-only directory permissions. Revocation cannot recall downloaded documents.
 
 The shared editor checks the GOALS.md revision before writing and records audit notes under `plans/`. Coordinate human and agent edits; the revision check is not a filesystem lock across processes. The starter does not import a private handoff ledger; publish reviewed handoff excerpts as documents instead.
 
 ### Project notes, chat and stats
 
-The project page shows Result, Purpose, and the Plan columns. Notes lists dated `-from-` files in `plans/`; Plans lists other plan files; Changes lists `docs/changes/` and exported chat replies. `ray note TO FROM SLUG FILE` writes a note for another project (`-` reads standard input). Board chat reads local Claude Code transcripts for the configured project folder, clamps replies to five lines, and expands the full text. Recent long replies are exported into `docs/changes/chat/` when chat is read. **Save note** writes a message to Notes; the portable starter does not install the private live-session messaging hook. The agent reads the note on its next turn or resume. A decision inbox **Dismiss** writes an answer with key `dismissed`: no choice was approved. The agent should close that question or ask a new one.
+The project page shows Result, Purpose, and the Plan columns. Notes lists dated `-from-` files in `plans/`; Plans lists other plan files; Changes lists `docs/changes/` and exported chat replies. `arpe note TO FROM SLUG FILE` writes a note for another project (`-` reads standard input). Board chat reads local Claude Code transcripts for the configured project folder, clamps replies to five lines, and expands the full text. Recent long replies are exported into `docs/changes/chat/` when chat is read. **Save note** writes a message to Notes; the portable starter does not install the private live-session messaging hook. The agent reads the note on its next turn or resume. A decision inbox **Dismiss** writes an answer with key `dismissed`: no choice was approved. The agent should close that question or ask a new one.
 
-Open **stats** for local transcript token totals, estimated costs, handoff timing and retained check history. Empty sources produce empty data. The default Claude transcript root is `~/.claude/projects`; set `claudeProjectsDir` in managed settings to override it. For optional prompt-proxy usage, set `usageProxyDb` to your local usage SQLite database and optionally `usageProxyPrices` to its price JSON file. The usage panel stays hidden when no compatible records exist. Restart the board after changing settings (`ray share start PORT` with the same configuration or reinstall using the original options). No proxy service is installed or contacted by default.
+Open **stats** for local transcript token totals, estimated costs, handoff timing and retained check history. Empty sources produce empty data. The default Claude transcript root is `~/.claude/projects`; set `claudeProjectsDir` in managed settings to override it. For optional prompt-proxy usage, set `integrations.usageProxy` to an object with `enabled: true` and `path` pointing to your local usage SQLite database, and optionally set `usageProxyPrices` to its price JSON file. The usage panel stays hidden when no compatible records exist. Restart the board after changing settings (`arpe share start PORT` with the same configuration or reinstall using the original options). No proxy service is installed or contacted by default.
 

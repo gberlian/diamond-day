@@ -1,84 +1,30 @@
 # Verification handoff
 
-Executed in a Linux sandbox with Node 22.16.0. Commands were run from the kit root, using isolated temporary homes and dynamically allocated ports. Output excerpts omit temporary paths, ports and invitation credentials.
+Baseline: arpe-kit-c228817; owner board: ray-board-ff0db73.
 
-## Full Node suite — exit 1
+## Executed in Linux with Node fallback
 
-Command: `node --test`
+- `node --test` — exit 1; 60 tests, 58 passed, 2 failed. Failures:
+  - `examples/arpe-demo/site/test/e2e.mjs`
+  - `arpe-demo example: actual browser Check passes five of five and captures both widths`
+  - Both fail at browser navigation with `net::ERR_BLOCKED_BY_ADMINISTRATOR`.
+- `bash test/no-private.sh` — exit 0.
+  - PASS no-private.sh: no user paths, addresses, wallet-like strings, or deny-list terms
+- `RAY_RUNTIME=node bash test/clean-install.sh` — exit 0.
+  - PASS demo Check: plans/resume.md: fresh (0s; max 86400s)
+  - PASS board: HTTP 200; projects demo, demo2; both RPM project pages and card APIs answer; scripts parse; resume links resolve
+  - ray has been renamed to arpe.
+  - PASS sharing: owner page HTTP 200; share listener /api/board HTTP 404; viewer invitation works
+  - PASS upgrade: existing project, token, root, board and share ports preserved
+  - PASS uninstall: board no longer answers
+  - PASS clean-install.sh: empty HOME after uninstall; 5s elapsed
+- Separate upgrade experiment: installed the unmodified baseline, created a project with the old command, installed the port into the same HOME, compared project bytes and root/port/token/agent settings, and listed the project using `arpe list`. Exit 0.
+  - PASS baseline-to-port upgrade: old project and settings preserved; arpe list works
+- `node tools/capture-managed-board.mjs` against a fresh install — exit 1.
+  - FAIL managed screenshots: net::ERR_BLOCKED_BY_ADMINISTRATOR
 
-```text
-# net::ERR_BLOCKED_BY_ADMINISTRATOR
-not ok 1 - examples/arpe-demo/site/test/e2e.mjs
-not ok 5 - arpe-demo example: actual browser Check passes five of five and captures both widths
-    net::ERR_BLOCKED_BY_ADMINISTRATOR
-1..60
-# tests 60
-# suites 0
-# pass 58
-# fail 2
-# cancelled 0
-# skipped 0
-# todo 0
-```
+## Outstanding acceptance
 
-The supplied baseline was also extracted unchanged and tested with `node --test examples/arpe-demo/site/test/e2e.mjs`: exit 1, `net::ERR_BLOCKED_BY_ADMINISTRATOR`. The original browser assertions were not modified or skipped. The full suite is not a pass.
+The Windows PowerShell and Bun runtimes are unavailable in this environment; no Windows or Bun test pass is claimed. The real browser captures could not be generated because navigation was blocked. No replacement screenshots or fabricated check results are included. Run the capture script against a fresh managed install with a browser that can access the local board. It saves the three requested images only after all three views render and a real check verdict is visible.
 
-## New integration tests — exit 0
-
-Command: `node --test test/sharing.test.mjs`
-
-```text
-ok 1 - sharing: invitation scope, cookie, viewer denial, revoke, separate listener
-ok 2 - sharing: editor may change intent and publish reviewed artifacts, not execution
-ok 3 - board: stats, notes, long transcript export and Dismiss
-ok 4 - optional prompt-proxy usage stays hidden without records and scopes costs to the project
-1..4
-# tests 4
-# suites 0
-# pass 4
-# fail 0
-```
-
-## Linux clean install (explicit Node fallback) — exit 0
-
-Command: `RAY_RUNTIME=node bash test/clean-install.sh`
-
-```text
-score 17/17 (100%), 1 results, hard failures 0: PASS
-PASS board: HTTP 200; projects demo, demo2; both RPM project pages and card APIs answer; scripts parse; resume links resolve
-Sharing listener started
-PASS sharing: owner page HTTP 200; share listener /api/board HTTP 404; viewer invitation works
-Ray already exists: demo2
-PASS uninstall (project root purged)
-PASS uninstall: board no longer answers
-PASS clean-install.sh: empty HOME after uninstall; 5s elapsed
-```
-
-## Default Bun clean install — exit 6
-
-Command: `bash test/clean-install.sh`
-
-```text
-Installing Bun into the managed installation directory...
-curl: (6) Could not resolve host: github.com
-```
-
-Bun is not installed in the sandbox, and downloading it failed. The Bun path was not verified.
-
-## Windows clean install — exit 127
-
-Command: `pwsh -NoProfile -File test/clean-install.ps1`
-
-```text
-pwsh: command not found
-```
-
-The Windows script now asserts the owner sharing page returns 200, the guest listener rejects the owner API with 404, a viewer invitation works, and uninstall shuts down both listeners. It retains the 15-minute assertion. Windows execution, browser UI interaction, Tailscale Serve from a remote node and the owner's actual prompt-proxy integration were not tested here. Run the Windows checks on a network-enabled Windows machine with PowerShell 7 and Bun or the installer download available.
-
-## Privacy scan — exit 0
-
-Command: `bash test/no-private.sh`
-
-```text
-PASS no-private.sh: no user paths, addresses, wallet-like strings, or deny-list terms
-```
+The scheduler's initial real check was verified; a full ten-minute elapsed-time rerun was not observed. The full owner fleet dashboard and private integration-specific routes, including external workspace diff/blob and vendor renderer routes, are not registered in the public server. The `/board/all` route is a project-list alias. The core RPM pages and check API are ported, but pixel-for-pixel UI parity and every owner-specific route are not verified.
