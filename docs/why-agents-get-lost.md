@@ -4,7 +4,7 @@ A countdown page was built, tested and deployed during an ARPE demonstration. It
 
 ![ARPE loop: Results and Purposes, execution cards, proof, Checks and persistent state](img/arpe-loop.svg)
 
-ARPE stands for Agentic Result, Purpose, Execution. A person owns the Result and Purpose. Agents own Execution. The Result describes a state that can be measured. The Purpose explains why that state matters. Execution is a plan of cards that move through planned, running and done. Each done card carries evidence. Each Result has a Check that tests whether it holds.
+ARPE stands for Agentic Result-oriented Purpose-driven Execution. A person owns the Result and Purpose. Agents own Execution. The Result describes a state that can be measured. The Purpose explains why that state matters. Execution is a plan of cards that move through planned, running and done. Each done card carries evidence. Each Result has a Check that tests whether it holds.
 
 The examples below come from the full system used for the countdown project. The [public kit](https://github.com/gberlian/diamond-day) provides its folder structure, board, check tools and handoff method. Automated supervision in the full system requires additional integration. The public static-site demo includes a deliberately failing check and a repair that can be reproduced locally.
 
