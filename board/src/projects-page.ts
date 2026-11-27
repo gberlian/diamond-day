@@ -194,7 +194,7 @@ async function post(url, body) {
 
 export function projectsPage(): string {
   return `${HEAD("Projects")}<body>
-<nav class="top"><a href="/board">all</a><a href="/board/docs">docs</a><a href="/board/decisions">decisions</a><span class="grow"></span><span class="tabs" id="fleet" hidden title="ChatGPT chats the whole machine runs at once"><button type="button" data-d="-1" aria-label="fewer">−</button><b id="fleet-n">–</b> chats<button type="button" data-d="1" aria-label="more">+</button><i id="fleet-status"></i></span><button id="new" hidden>+ project</button></nav>
+<nav class="top"><a href="/board">all</a><a href="/board/docs">docs</a><a href="/board/decisions">decisions</a><a href="/board/sharing">sharing</a><a href="/board/stats">stats</a><span class="grow"></span><span class="tabs" id="fleet" hidden title="ChatGPT chats the whole machine runs at once"><button type="button" data-d="-1" aria-label="fewer">−</button><b id="fleet-n">–</b> chats<button type="button" data-d="1" aria-label="more">+</button><i id="fleet-status"></i></span><button id="new" hidden>+ project</button></nav>
 <main class="list" id="list"></main>
 <dialog id="dlg"><form id="form" method="dialog">
 <label>Name</label><input name="name" required pattern="[A-Za-z0-9][A-Za-z0-9_.\\-]*" maxlength="64" autocomplete="off">
@@ -249,15 +249,15 @@ load().then(() => { if (new URLSearchParams(location.search).get("new") && !docu
 }
 
 export function projectPage(ray: string, decisionToken = ""): string {
-  return `${HEAD(ray + " · board")}<body><style>.proj { grid-template-columns: minmax(0,1fr); } .proj.docs-open { grid-template-columns: minmax(180px, 260px) minmax(0,1fr); } .proj .chat[hidden] { display:none; } .docs-sidebar:not([hidden]) { display:block !important; } @media(max-width:900px){.proj.docs-open{grid-template-columns:minmax(0,1fr)}}</style>
-<nav class="top"><div class="pick"><button id="pick-btn" aria-haspopup="true" aria-expanded="false"><span class="dot" id="pick-dot"></span><b id="pick-name"></b><i>▾</i></button><div class="pick-menu" id="pick-menu" hidden></div></div><span class="grow"></span><a href="/board/decisions">decisions</a><button id="docs-toggle" aria-expanded="false">docs</button><button class="gear" id="settings-btn" hidden aria-label="Settings" title="Settings">⚙</button></nav>
+  return `${HEAD(ray + " · board")}<body><style>.proj { grid-template-columns: minmax(0,1fr) minmax(280px,35%); } .proj.docs-open { grid-template-columns: minmax(180px, 260px) minmax(0,1fr) minmax(280px,35%); } .side-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:8px}.side-tabs button[aria-selected="true"]{color:var(--busy)} .reply-preview{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}.chat-log[hidden],#usage[hidden]{display:none}#usage{padding:8px;overflow:auto;max-height:35vh}#usage td,#usage th{padding:3px;white-space:nowrap}.reply-full{white-space:pre-wrap;overflow-wrap:anywhere} @media(max-width:900px){.proj{grid-template-columns:minmax(0,1fr)}} .proj .chat[hidden] { display:none; } .docs-sidebar:not([hidden]) { display:block !important; } @media(max-width:900px){.proj.docs-open{grid-template-columns:minmax(0,1fr)}}</style>
+<nav class="top"><div class="pick"><button id="pick-btn" aria-haspopup="true" aria-expanded="false"><span class="dot" id="pick-dot"></span><b id="pick-name"></b><i>▾</i></button><div class="pick-menu" id="pick-menu" hidden></div></div><span class="grow"></span><a href="/board/decisions">decisions</a><a href="/board/sharing">sharing</a><a href="/board/stats">stats</a><button id="docs-toggle" aria-expanded="false">docs</button><button class="gear" id="settings-btn" hidden aria-label="Settings" title="Settings">⚙</button></nav>
 <dialog id="settings"><form id="floor-form" method="dialog"><h2>Settings</h2><label>Handoffs at once, this project <input type="number" name="floor" min="1" max="10"></label><label>ChatGPT chats, whole machine <input type="number" name="fleet" min="1" max="40"></label><p class="counts" id="settings-counts"></p><div class="row"><button type="button" id="settings-close">Close</button><button type="submit" value="save">Save</button></div><output></output></form></dialog>
 <div class="proj" id="project-layout"><aside id="docs-sidebar" class="docs-sidebar" hidden>
 <header><strong>Documents</strong><button id="docs-close" aria-label="Close documents">×</button></header>
 <input type="search" id="docs-search" placeholder="Search documents" aria-label="Search documents">
 <div id="docs-tree"></div></aside><div class="main-pane"><div class="rpm" id="rpm"></div>
 <section id="document-pane" hidden><button id="back-plan">← Back to plan</button><div id="document-content"></div></section></div>
-<section class="chat" hidden><header><span class="dot" id="sdot"></span><span>chat</span><span class="grow"></span><label><input type="checkbox" id="sys"> tools</label><button id="older" hidden>older</button></header><div class="chat-log" id="log"></div><form class="chat-compose" id="chat-compose" hidden><textarea id="chat-text" aria-label="Message to session" rows="3" maxlength="16000" required placeholder="Message"></textarea><button id="chat-send" type="submit">Send</button><output id="chat-status" aria-live="polite"></output></form></section></div>
+<section class="chat"><div class="side-tabs" id="side-tabs" role="tablist"><span class="dot" id="sdot"></span><button role="tab" data-tab="chat" aria-selected="true">Chat</button><button role="tab" data-tab="notes">Notes</button><button role="tab" data-tab="plans">Plans</button><button role="tab" data-tab="changes">Changes</button></div><details id="usage" hidden><summary>Session usage</summary><div id="usage-content"></div></details><div class="chat-log" id="log"></div><div class="chat-log" id="side-lib" hidden></div><form id="chat-compose" class="chat-compose"><textarea id="chat-text" required maxlength="16000" aria-label="Message to project" placeholder="Message"></textarea><button id="chat-send" type="submit">Save note</button><output id="chat-status"></output></form></section></div>
 <aside class="panel" id="panel" hidden><button class="close" id="pclose">×</button><div id="pbody"></div></aside>
 <script>const RAY = ${JSON.stringify(ray).replace(/</g, "\\u003c")};
 ${SHARED_JS}
@@ -293,7 +293,7 @@ function decisionHtml(c) {
         (o.detail ? '<p>' + esc(o.detail) + '</p>' : "") + (o.images || []).map(img =>
           '<img loading="lazy" alt="' + esc(o.label) + '" src="/api/decisions/image?ray=' + encodeURIComponent(RAY) + '&amp;path=' + encodeURIComponent(img) + '">').join("") + '</label>').join("") +
       '</fieldset>' + (d.allowNote ? '<label>Optional note<textarea name="note" maxlength="500"></textarea></label>' : "") +
-      '<button type="submit">Answer</button><output aria-live="polite"></output></form>') + '</section>';
+      '<button type="submit">Answer</button><button type="submit" value="dismissed">Dismiss</button><output aria-live="polite"></output></form>') + '</section>';
 }
 function cardHtml(r, c) {
   const failed = c.cause && c.cause.kind === "failed";
@@ -323,7 +323,7 @@ function render() {
     const missing = r.cards.filter(c => c.missingProof).length;
     return '<details class="result" data-id="' + esc(r.id) + '"' + (closedResults.has(r.id) ? "" : " open") + '><summary class="rhead"><span class="num">#' + esc(r.id) + '</span>' +
       '<span class="title">' + esc(r.title) + '</span>' + '<span class="count">' + done + '/' + r.cards.length + '</span></summary>' +
-      ed("result", { id: r.id, key: "result" }, r.result, "rtext") + ed("result", { id: r.id, key: "purpose" }, r.purpose, "rpurp") +
+      '<b>Result</b>' + ed("result", { id: r.id, key: "result" }, r.result, "rtext") + '<b>Purpose</b>' + ed("result", { id: r.id, key: "purpose" }, r.purpose, "rpurp") + '<b>Plan</b>' +
       (missing ? '<div class="proof-warning">Goal check: ' + missing + ' done without proof</div>' : "") +
       '<div class="kanban">' + cols.map(([k, m]) => {
         const cards = r.cards.filter((c) => c.column === k);
@@ -346,7 +346,7 @@ async function load(force) {
   try {
     const next = await (await fetch(API, { cache: "no-store" })).json();
     if (panelCard || editing() || (!force && document.activeElement?.closest("#floor-form"))) return;
-    P = next; document.getElementById("chat-compose").hidden = !P.editEnabled; render();
+    P = next; render(); renderSide();
     if (initialDecision) {
       const wanted = initialDecision; initialDecision = null;
       for (const r of P.results) { const c = r.cards.find(c => c.decision === wanted); if (c) { openCard(r.id,c.index); return; } }
@@ -480,7 +480,7 @@ pbody.addEventListener("submit", async e => {
   button.disabled = true;
   try {
     const response = await fetch("/api/decisions/answer", {method:"POST", headers:{"content-type":"application/json","x-decision-token":DECISION_TOKEN},
-      body:JSON.stringify({ray:RAY,id:c.decision,key:data.get("key") || "",note:data.get("note") || ""})});
+      body:JSON.stringify({ray:RAY,id:c.decision,key:e.submitter?.value === "dismissed" ? "dismissed" : data.get("key") || "",note:e.submitter?.value === "dismissed" ? "" : data.get("note") || ""})});
     const result = await response.json();
     if (!response.ok) throw Error(result.error || "Answer failed");
     c.decisionItem.answer = result.answer; c.decisionItem.state = "answered";
@@ -507,62 +507,6 @@ pbody.addEventListener("click", async e => {
 function closePanel() { panel.hidden = true; panelCard = null; load(true); }
 document.getElementById("pclose").onclick = closePanel;
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !panel.hidden) closePanel(); });
-// Chat: the ray's live session transcript, newest at the bottom.
-const log = document.getElementById("log"), olderBtn = document.getElementById("older");
-let chat = { end: 0, before: null, signature: "" };
-let chatLoading = false;
-const compose = document.getElementById("chat-compose"), chatText = document.getElementById("chat-text"), sendBtn = document.getElementById("chat-send"), chatStatus = document.getElementById("chat-status");
-compose.onsubmit = async (e) => {
-  e.preventDefault(); if (sendBtn.disabled || !chatText.value.trim()) return;
-  const text = chatText.value; sendBtn.disabled = true; chatStatus.textContent = "Submitting…";
-  try {
-    const response = await fetch("/api/rays/" + encodeURIComponent(RAY) + "/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
-    const result = await response.json();
-    if (!response.ok) throw Error(result.message || result.error || "Send failed");
-    chatStatus.textContent = result.mode === "fallback" ? "Not sent to session. Saved to " + result.file + " (" + result.reason + ")." : result.message;
-    if (chatText.value === text) chatText.value = "";
-    await loadChat();
-  } catch (err) { chatStatus.textContent = err.message; } finally { sendBtn.disabled = false; }
-};
-function chatMd(text) {
-  return String(text).split(/\`\`\`[^\\n]*\\n?/).map((part, i) => i % 2 ? "<pre>" + esc(part) + "</pre>" :
-    esc(part).split(/\\n{2,}/).filter((x) => x.trim()).map((p) => "<p>" + p.replace(/\`([^\`\\n]+)\`/g, "<code>$1</code>")
-      .replace(/\\*\\*([^*\\n]+)\\*\\*/g, "<strong>$1</strong>").replace(/\\n/g, "<br>") + "</p>").join("")).join("");
-}
-function turnHtml(t) {
-  if (t.role === "break") return '<div class="turn break"><span>new session' + (t.at ? " · " + esc(new Date(t.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })) : "") + '</span></div>';
-  const who = t.role === "owner" ? "you" : t.role === "peer" ? (t.from || "peer") : t.role === "system" ? "system" : "session";
-  const time = t.at ? new Date(t.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
-  const tools = (t.tools || []).map((x) => '<div class="tool' + (x.ok === false ? " bad" : "") + '">▸ <b>' + esc(x.name) + '</b> ' + esc(x.description || "") +
-    (x.result ? '<div class="res">' + esc(x.result) + '</div>' : "") + '</div>').join("");
-  return '<div class="turn ' + t.role + '"><div class="who">' + esc(who) + ' · ' + esc(time) + '</div>' +
-    (t.text ? '<div class="msg">' + (t.role === "system" ? esc(t.text) : chatMd(t.text)) + '</div>' : "") + tools + '</div>';
-}
-const chatUrl = (b) => "/api/rays/" + encodeURIComponent(RAY) + "/chat?limit=60" + (b != null ? "&before=" + b : "");
-async function loadChat() {
-  if (chatLoading) return; chatLoading = true;
-  try {
-    const r = await fetch(chatUrl(null), { cache: "no-store" });
-    if (!r.ok) { log.textContent = ""; return; }
-    const page = await r.json();
-    const signature = JSON.stringify([page.session, page.end, page.turns]);
-    if (signature === chat.signature && log.childElementCount) return;
-    const follow = log.scrollHeight - log.scrollTop - log.clientHeight < 60 || !chat.end;
-    log.innerHTML = page.turns.map(turnHtml).join("");
-    chat = { end: page.end, before: page.before, signature };
-    olderBtn.hidden = page.before == null;
-    if (follow) log.scrollTop = log.scrollHeight;
-  } catch {} finally { chatLoading = false; }
-}
-olderBtn.onclick = async () => {
-  if (chat.before == null) return;
-  const page = await (await fetch(chatUrl(chat.before), { cache: "no-store" })).json();
-  const h = log.scrollHeight;
-  log.insertAdjacentHTML("afterbegin", page.turns.map(turnHtml).join(""));
-  log.scrollTop += log.scrollHeight - h;
-  chat.before = page.before; olderBtn.hidden = page.before == null;
-};
-document.getElementById("sys").onchange = (e) => log.classList.toggle("sys", e.target.checked);
 const sidebar = document.getElementById("docs-sidebar"), docTree = document.getElementById("docs-tree");
 const docSearch = document.getElementById("docs-search"), docToggle = document.getElementById("docs-toggle");
 const docPane = document.getElementById("document-pane"), docContent = document.getElementById("document-content");
@@ -632,8 +576,12 @@ docTree.onclick = e => { const a=e.target.closest("a[data-doc]"); if(a){e.preven
 docContent.onclick = e => { const a=e.target.closest("a[href]"); if(!a)return; const u=new URL(a.href,location.href);
   if(u.origin===location.origin && u.pathname==="/board/doc" && u.searchParams.get("path")?.startsWith(RAY+"/")){e.preventDefault();openDocument(u.searchParams.get("path"));} };
 rpm.addEventListener("click", (e) => { const a = e.target.closest("a[data-doc]"); if (a && !e.ctrlKey && !e.metaKey) { e.preventDefault(); openDocument(a.dataset.doc); } });
-chatText.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); compose.requestSubmit(); } });
-chatText.addEventListener("input", () => { chatText.style.height = "auto"; chatText.style.height = chatText.scrollHeight + "px"; });
-load(true); tabs();
+let sideTab="chat", chatSignature="";
+function renderSide(){const log=document.getElementById("log"),lib=document.getElementById("side-lib");document.getElementById("chat-compose").hidden=sideTab!=="chat";log.hidden=sideTab!=="chat";lib.hidden=sideTab==="chat";if(sideTab!=="chat")lib.innerHTML=(P?.library?.[sideTab]||[]).map(x=>'<div class="lrow"><a href="/board/doc?path='+encodeURIComponent(x.path)+'">'+esc(x.title)+'</a><time>'+esc(x.date)+'</time></div>').join("")||"No "+sideTab;}
+async function loadChat(){try{const r=await fetch(API+"/chat");if(!r.ok)return;const d=await r.json(),signature=JSON.stringify(d.turns);if(signature===chatSignature)return;chatSignature=signature;const log=document.getElementById("log");log.innerHTML=d.turns.map(t=>'<article class="turn"><b>'+esc(t.from||t.role)+'</b><div class="msg reply-preview">'+esc(t.text)+'</div>'+(t.text.length>0?'<details><summary>Read full reply</summary><div class="reply-full">'+esc(t.text)+'</div></details>':'')+'</article>').join("")||"No transcript";for(const row of log.querySelectorAll(".turn")){const preview=row.querySelector(".reply-preview"),full=row.querySelector("details");if(full&&preview.clientHeight>0&&preview.scrollHeight<=preview.clientHeight)full.hidden=true;}}catch{}}
+document.getElementById("side-tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(!b)return;sideTab=b.dataset.tab;for(const x of document.querySelectorAll("#side-tabs button"))x.setAttribute("aria-selected",String(x===b));renderSide();});
+document.getElementById("chat-compose").onsubmit=async e=>{e.preventDefault();const t=document.getElementById("chat-text"),out=document.getElementById("chat-status"),b=document.getElementById("chat-send");b.disabled=true;try{const r=await fetch(API+"/chat",{method:"POST",headers:{"content-type":"application/json","x-decision-token":DECISION_TOKEN},body:JSON.stringify({text:t.value})});if(!r.ok)throw Error("Note not saved");t.value="";out.textContent="Saved to Notes";await load(true);}catch(e){out.textContent=e.message}finally{b.disabled=false}};
+async function loadUsage(){const el=document.getElementById("usage");try{const r=await fetch(API+"/usage"),u=await r.json();el.hidden=!r.ok||!u;if(el.hidden)return;const money=n=>n===null?"—":"$"+n.toFixed(4);document.getElementById("usage-content").innerHTML='<p>24h calls: '+esc(u.ray24h.calls)+' · Cost: '+esc(money(u.ray24h.usd))+' · Cache waste: '+esc(u.ray24h.wasted)+'</p><p>Last context: '+esc(u.last.contextTokens)+' tokens · System: '+esc(u.last.sysChars)+' chars · Tools: '+esc(u.last.toolsChars)+' chars · Messages: '+esc(u.last.msgsChars)+' chars</p><table><thead><tr><th>Model</th><th>Context</th><th>Cache read</th><th>Cache write</th><th>Output</th><th>Cost</th><th>Cache reason</th></tr></thead><tbody>'+u.calls.map(c=>'<tr>'+[c.model,c.contextTokens,c.cacheRead,c.cacheWrite,c.output,money(c.usd),c.reason].map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}catch{el.hidden=true;}}
+load(true); tabs();loadChat();loadUsage();setInterval(loadUsage,60000);setInterval(()=>{loadChat();renderSide()},5000);
 setInterval(load, 15000); setInterval(tabs, 15000);
 `;

@@ -37,12 +37,23 @@ assert.equal((await fetch(base+'/board/p/missing')).status,404);
 for(const script of html.matchAll(/<script>([\s\S]*?)<\/script>/g))new Script(script[1]);
 console.log('PASS board: HTTP 200; projects demo, demo2; both RPM project pages and card APIs answer; scripts parse; resume links resolve');
 JS
+share_port=$(node -e 'const s=require("net").createServer();s.listen(0,[127,0,0,1].join("."),()=>{console.log(s.address().port);s.close()})')
+ray share start "$share_port"
+invite=$(ray share demo Guest viewer 1)
+share_base="http://$(printf '%s.%s.%s.%s' 127 0 0 1):$share_port"
+node --input-type=module - "$base" "$share_base" "$invite" <<'JS'
+import assert from 'node:assert/strict';
+const [base,guest,invite]=process.argv.slice(2);assert.equal((await fetch(base+'/board/sharing')).status,200);assert.equal((await fetch(guest+'/api/board')).status,404);
+const token=new URL(invite).hash.split('/')[1];assert.match(token,/^[A-Za-z0-9_-]{43}$/);const r=await fetch(guest+'/c/demo/api',{headers:{authorization:'Bearer '+token}});assert.equal(r.status,200);assert.equal((await r.json()).role,'viewer');
+console.log('PASS sharing: owner page HTTP 200; share listener /api/board HTTP 404; viewer invitation works');
+JS
 # A duplicate new command must not overwrite existing content.
 if ray new demo2 'overwrite'; then echo 'FAIL duplicate creation accepted' >&2; exit 1; fi
 grep -Fq 'A small demo' "$HOME/rays/demo2/GOALS.md"
 bash "$REPO/install.sh" --uninstall --purge
-node --input-type=module - "$base" <<'JS'
+node --input-type=module - "$base" "$share_base" <<'JS'
 import assert from 'node:assert/strict';
+await assert.rejects(fetch(process.argv[3]+'/join',{signal:AbortSignal.timeout(2000)}));
 await assert.rejects(fetch(process.argv[2]+'/board',{signal:AbortSignal.timeout(2000)}));
 console.log('PASS uninstall: board no longer answers');
 JS

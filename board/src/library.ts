@@ -6,7 +6,7 @@ import path from "node:path";
 import { safeUnder } from "./docs-page.ts";
 
 export type LibraryItem = { title: string; text?: string; date: string; path: string };
-export type Library = { insights: LibraryItem[]; decisions: LibraryItem[]; documents: LibraryItem[] };
+export type Library = { insights: LibraryItem[]; decisions: LibraryItem[]; documents: LibraryItem[]; notes: LibraryItem[]; plans: LibraryItem[]; changes: LibraryItem[] };
 
 const DATE = /^(\d{4}-\d{2}-\d{2})/;
 function read(abs: string) { try { return readFileSync(abs, "utf8"); } catch { return ""; } }
@@ -37,7 +37,7 @@ function walk(abs: string, rel: string, skip: Set<string>, out: { rel: string; m
 
 export function projectLibrary(root: string, ray: string): Library {
   const base = safeUnder(root, ray);
-  if (!base || !/^[A-Za-z0-9][\w.-]*$/.test(ray)) return { insights: [], decisions: [], documents: [] };
+  if (!base || !/^[A-Za-z0-9][\w.-]*$/.test(ray)) return { insights: [], decisions: [], documents: [], notes: [], plans: [], changes: [] };
   const dated = (folder: string, withText: boolean): LibraryItem[] =>
     mdIn(safeUnder(base, folder) ?? "").sort().reverse().flatMap((name) => {
       const abs = safeUnder(base, `${folder}/${name}`); if (!abs) return [];
@@ -58,5 +58,9 @@ export function projectLibrary(root: string, ray: string): Library {
     ...singles.map((d) => ({ title: titleOf(read(path.join(base, d.rel)), d.rel.split("/").at(-1)!), rel: d.rel, mtime: d.mtime })),
   ].sort((a, b) => b.mtime - a.mtime).slice(0, 40)
     .map((d) => ({ title: d.title, date: new Date(d.mtime).toISOString().slice(0, 10), path: `${ray}/${d.rel}` }));
-  return { insights: dated("insights", true), decisions: dated("decisions", false), documents };
+  const allPlans=dated("plans",false);
+  const notes=allPlans.filter(x=>/-from-/.test(x.path));
+  const plans=allPlans.filter(x=>!/-from-/.test(x.path));
+  const changes=[...dated("docs/changes",false).filter(x=>!/-full\.md$/.test(x.path)),...dated("docs/changes/chat",false)].sort((a,b)=>b.path.split('/').at(-1)!.localeCompare(a.path.split('/').at(-1)!));
+  return { insights: dated("insights", true), decisions: dated("decisions", false), documents, notes, plans, changes };
 }

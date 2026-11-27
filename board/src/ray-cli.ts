@@ -7,7 +7,8 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { settings, installDir, url, loopback, type Settings } from './config.ts';
 import { validName, projectNames } from './projects.ts';
-import { startBoard } from './service.ts';
+import { sendNote } from './ray-note.ts';
+import { startBoard, stopBoard } from './service.ts';
 const read=(p:string)=>existsSync(p)?readFileSync(p,'utf8'):'';
 const put=(p:string,t:string)=>{try{writeFileSync(p,t,{flag:'wx'});}catch(e:any){if(e.code!=='EEXIST')throw e;}};
 const clean=(v:string)=>v.replace(/[\r\n\0]+/g,' ').trim();
@@ -26,7 +27,7 @@ export function newRay(s:Settings,n:string,mission:string){
   const shared=`## Boundaries and evidence
 Edit only this ray and repositories listed in its README. Do not change permissions, grant trust, spend money, or publish without approval. Do not expose private files or secrets in handoffs. Run the declared Check in the ray directory and record actual evidence; the RPM score is not outcome proof. Add proof under each done card; finish only when the Check passes and every must has proof. Archive and replace a reached Result with the owner’s next approved outcome. Keep exactly one card running while work remains. Ask blocked questions through a card-linked decision in decisions/ and read the saved answer before acting. Keep all five parts of plans/resume.md current after each meaningful step. Confirm the successor has read and understood the resume note before closing a session. Delegate substantial independent work using the handoff template and review returned files before accepting them.`;
   put(path.join(p,rule),`# Ray instructions\n\nRead GOALS.md and plans/resume.md first. The owner owns Result and Purpose; the agent owns the plan. Run \`bun ../tools/rpm-check.ts .\` after editing goals.\n\n${shared}`);
-  put(path.join(p,'.gitignore'),'.docs/\n');active(s,n,true);console.log(`Created ${n}: ${p}`);
+  put(path.join(p,'.gitignore'),'.docs/\n.board/\n');active(s,n,true);console.log(`Created ${n}: ${p}`);
 }
 /** Copy a trusted, self-contained template. No links, no overwrite, no execution. */
 export function newRayFrom(s:Settings,n:string,from:string){
@@ -103,13 +104,31 @@ async function restore(s:Settings){
     child.on('error',()=>console.log(`Resume in a terminal: ray open ${name}`));child.unref();
   }
 }
+async function configureShare(s:Settings,port?:number,origin?:string){
+  if(port!==undefined&&(!Number.isInteger(port)||port<1||port>65535||port===s.port))throw Error('Invalid share port');
+  if(origin){const u=new URL(origin);if(u.protocol!=='https:'||!u.hostname.endsWith('.ts.net')||u.username||u.password||u.pathname!=='/'||u.search||u.hash)throw Error('Use an HTTPS Tailscale origin');origin=u.origin;}
+  const next={...s,sharePort:port,shareOrigin:origin};const file=path.join(installDir(),'settings.json');
+  await stopBoard(s);writeFileSync(file,JSON.stringify(next,null,2)+'\n',{mode:0o600});
+  try{await startBoard(next);}catch(e){writeFileSync(file,JSON.stringify(s,null,2)+'\n',{mode:0o600});await startBoard(s);throw e;}
+}
+async function share(s:Settings,n:string|undefined,args:string[]){
+  if(n==='start'){if(args.length<1||args.length>2)throw Error('Usage: ray share start PORT [HTTPS_ORIGIN]');await configureShare(s,Number(args[0]),args[1]);console.log('Sharing listener started');return;}
+  if(n==='stop'){if(args.length)throw Error('Usage: ray share stop');await configureShare(s);console.log('Sharing listener stopped');return;}
+  if(!n||args.length>3)throw Error('Usage: ray share PROJECT [PERSON] [viewer|editor] [HOURS]');checkName(s,n);
+  if(!s.sharePort)throw Error('Run ray share start PORT [HTTPS_ORIGIN] first');await startBoard(s);
+  const response=await fetch(`${url(s)}/api/companies/${encodeURIComponent(n)}`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${s.token}`},body:JSON.stringify({op:'invite',person:args[0]||'Guest',role:args[1]||'viewer',ttlHours:args[2]===undefined?168:Number(args[2])})});
+  const d=await response.json();if(!response.ok)throw Error(d.error||'Invite failed');
+  console.log(`${s.shareOrigin||'http://'+[127,0,0,1].join('.')+':'+s.sharePort}/join#${n}/${d.token}`);
+}
 export async function main(args:string[]){const s=settings();const [cmd,n,...rest]=args;
   switch(cmd){case 'new':if(n&&rest.length===2&&rest[0]==='--from')newRayFrom(s,n,rest[1]!);else if(n&&rest.length===1&&rest[0]!=='--from')newRay(s,n,rest[0]!);else throw new Error('Usage: ray new NAME "MISSION" | ray new NAME --from TEMPLATE');break;
+  case 'note':if(!n||rest.length!==3)throw Error('Usage: ray note TO FROM SLUG FILE|-');console.log(sendNote(s.root,n,rest[0]!,rest[1]!,readFileSync(rest[2]==='-'?0:rest[2]!,'utf8')).file);break;
+  case 'share':await share(s,n,rest);break;
   case 'list':if(n)throw new Error('Usage: ray list');for(const name of projectNames(s.root))console.log(name);break;
   case 'board':if(rest.length)throw new Error('Usage: ray board [NAME]');if(n)checkName(s,n);await startBoard(s);browser(s,n);break;
   case 'open':if(!n||rest.length)throw new Error('Usage: ray open NAME');await openRay(s,n);break;
   case 'stop':if(!n||rest.length)throw new Error('Usage: ray stop NAME');await stop(s,n);break;
   case 'restore':if(n)throw new Error('Usage: ray restore');await restore(s);break;
-  default:throw new Error('Usage: ray new|open|stop|board|list|restore');}
+  default:throw new Error('Usage: ray new|open|stop|board|list|restore|share|note');}
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2)).catch(e=>{console.error(e.message);process.exitCode=1;});
