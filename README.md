@@ -18,6 +18,9 @@ ARPE stands for **Agentic Result-oriented Purpose-driven Execution**. The person
 
 The RPM board uses Bun (installed automatically if missing) and no package dependencies. A shell is needed for installation (Bash on Linux/macOS, PowerShell on Windows). The original static-site tutorial below uses Node.js 20+. An AI account is **not** needed to try either demo.
 
+
+**[Watch the recorded install](docs/tutorial/README.md)**: a real install on Windows, step by step, with screenshots and a [video](docs/tutorial/tutorial.mp4).
+
 ## The board
 
 From an extracted checkout, run one command on Linux (Bash, curl and unzip available):
