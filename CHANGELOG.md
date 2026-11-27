@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Rewrite the README entry point with the illustrated board, recorded walkthrough and first-project commands. Publish the illustrated ARPE, simply reader’s path and chapters; add Show HN and X drafts for owner approval.
+
 - Port the owner’s project list, RPM project page, file-chip cards, card output tabs and Check service to the managed kit. Automatically check all local projects at ten-minute intervals, including inactive ones.
 - Make `arpe` the primary command; retain `ray` as a compatibility wrapper with a one-line stderr notice. Preserve existing settings, projects, and sharing credentials on reinstall.
 - Default machine integrations to off and hide their controls. Retain the separate invitation-scoped sharing listener.

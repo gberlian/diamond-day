@@ -113,7 +113,7 @@ function switching(ray: string): boolean {
 }
 export async function handleChatSend(req: Request, config: BoardConfig, remoteAddress: string | undefined, options: ChatSendOptions = {}): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
-  if (![[127,0,0,1].join("."), '::1', ("::ffff:" + [127,0,0,1].join("."))].includes(remoteAddress ?? '') || !editingEnabled(config) ||
+  if (! [[127,0,0,1].join("."), '::1', ("::ffff:" + [127,0,0,1].join("."))].includes(remoteAddress ?? '') || !editingEnabled(config) ||
       process.env.RAY_BOARD_DEMO === '1' || process.env.RAY_BOARD_DEMO === 'true') return json({ error: 'local only or disabled' }, 403);
   const denied = writeGuard(req, config, true); if (denied) return denied;
   if (req.headers.get('origin') !== new URL(req.url).origin) return json({ error: 'same origin required' }, 403);

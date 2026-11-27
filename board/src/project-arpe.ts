@@ -204,7 +204,7 @@ export function keeperWaitReason(root: string, ray: string): string | null {
 }
 export function localJobGuard(req: Request, config: BoardConfig, remoteAddress?: string): Response | null {
   if (req.method !== "POST") return json({ error: "POST required" }, 405);
-  if (![[127,0,0,1].join("."),"::1",("::ffff:" + [127,0,0,1].join("."))].includes(remoteAddress ?? "") || !editingEnabled(config) ||
+  if (! [[127,0,0,1].join("."),"::1",("::ffff:" + [127,0,0,1].join("."))].includes(remoteAddress ?? "") || !editingEnabled(config) ||
       ["1","true"].includes(process.env.RAY_BOARD_DEMO ?? "")) return json({ error: "local only or disabled" }, 403);
   const denied = writeGuard(req, config, true);
   if (denied) return denied;
